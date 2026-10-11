@@ -25,6 +25,16 @@ Companion repo to the Substack series.
 | 11 | SWE-agent (v1.1.0) | [swe-agent/article.md](swe-agent/article.md) | forthcoming |
 | 12 | Qwen Code (v0.25.0) | [qwen-code/article.md](qwen-code/article.md) | forthcoming |
 
+## Embedded Harness Anatomy
+
+A companion series under [`embedded/`](embedded/) — top-down dissections of
+agent harnesses that run on milliwatts, adapted for event-driven systems under
+physical constraints.
+
+| # | Harness | Article | Trace |
+|---|---------|---------|-------|
+| E1 | ESP-Claw (v0.1.0) | [embedded/esp-claw/article.md](embedded/esp-claw/article.md) | [Follow one sensor event](embedded/esp-claw/trace.html) |
+
 ## What's here
 
 - `<harness>/article.md` — the full article text with evidence endnotes
