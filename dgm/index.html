@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    background: #161210; color: #ece1d3;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.7; padding: 48px 24px; margin: 0;
+  }
+  main { max-width: 760px; margin: 0 auto; }
+  a { color: #d08c4e; }
+  h1 { font-size: 1.9rem; letter-spacing: -0.02em; line-height: 1.25; margin-bottom: 16px; }
+  h2 { font-size: 1.4rem; margin: 40px 0 12px; padding-top: 8px; border-top: 1px solid #2c231b; }
+  h3 { font-size: 1.1rem; margin: 28px 0 8px; }
+  p, li { margin-bottom: 12px; }
+  blockquote {
+    border-left: 3px solid #d08c4e; padding: 4px 16px; margin: 20px 0;
+    color: #a89880; background: #1f1a15; border-radius: 0 8px 8px 0;
+  }
+  blockquote p { margin-bottom: 6px; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.88em; background: #1f1a15; padding: 2px 6px; border-radius: 6px;
+  }
+  pre { background: #1f1a15; border: 1px solid #3a2f26; border-radius: 8px;
+        padding: 16px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  img { max-width: 100%; height: auto; border: 1px solid #3a2f26;
+        border-radius: 12px; margin: 20px 0; background: #1f1a15; }
+  table { border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 0.92rem;
+          display: block; overflow-x: auto; }
+  th, td { border: 1px solid #3a2f26; padding: 10px 12px; text-align: left;
+           vertical-align: top; }
+  th { background: #1f1a15; }
+  ul, ol { padding-left: 24px; }
+  hr { border: none; border-top: 1px solid #2c231b; margin: 32px 0; }
+  .footnote { font-size: 0.88rem; color: #a89880; }
+  .footnote hr { margin: 40px 0 16px; }
+  sup a { text-decoration: none; }
+  .topnav { max-width: 760px; margin: 0 auto 32px; font-size: 0.9rem; }
+  .topnav a { color: #a89880; text-decoration: none; }
+  .topnav a:hover { color: #ece1d3; }
+  .diagram-cta {
+    display: block; text-align: center; margin: 28px 0; padding: 16px;
+    background: #1f1a15; border: 1px solid #3a2f26; border-radius: 12px;
+    color: #ece1d3; text-decoration: none; font-weight: 600;
+  }
+  .diagram-cta:hover { border-color: #d08c4e; }
+  .diagram-cta span { display: block; font-weight: 400; font-size: 0.88rem;
+                      color: #a89880; margin-top: 4px; }
+</style>
+<title>Agent Harness Anatomy #13: Darwin Gödel Machine — the agent that rewrites itself</title>
+</head>
+<body>
+<main>
+  <nav class="topnav"><a href="../">&larr; Agent Harness Anatomy</a></nav>
+<h1 id="agent-harness-anatomy-13-darwin-g-del-machine-the-agent-that-rewrites-itself">Agent Harness Anatomy #13: Darwin Gödel Machine — the agent that rewrites itself</h1>
+<blockquote>
+<p><strong>Series:</strong> Agent Harness Anatomy — top-down dissections of real agent</p>
+<p>harnesses, grounded in verifiable source code. Every behavioral claim</p>
+<p>below carries a footnote to a pinned GitHub permalink; the full evidence</p>
+<p>lives in the endnotes.</p>
+</blockquote>
+<h2 id="version-block">Version block</h2>
+<ul>
+<li><strong>Repo:</strong> <a href="https://github.com/jennyzzt/dgm">jennyzzt/dgm</a></li>
+<li><strong>Pinned:</strong> <code>main</code> @ <code>a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2</code> (2025-08-13)</li>
+<li><strong>Language:</strong> Python</li>
+<li><strong>License:</strong> Apache-2.0</li>
+<li><strong>Claim under test:</strong> &quot;the agent that rewrites itself&quot; — an open-ended</li>
+</ul>
+<p>evolutionary loop that rewrites a coding agent&#x27;s own source</p>
+<p>Size, for orientation: 39 Python files, ~9,410 lines in a flat repo — no packages, no framework. The big files are <code>llm_withtools.py</code> (553), <code>self_improve_step.py</code> (447), <code>prompts/self_improvement_prompt.py</code> (468), <code>llm.py</code> (359), <code>DGM_outer.py</code> (336), and <code>swe_bench/harness.py</code> (295). Line counts include blanks and comments — order of magnitude, not precision instruments. Pinning caveat up front: the paper&#x27;s v3 (2026-03-12) postdates this pin (2025-08-13), so paper claims may describe code that isn&#x27;t here — flags are in the endnotes.<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup><sup id="fnref:20"><a class="footnote-ref" href="#fn:20">20</a></sup></p>
+<p><img alt="Darwin Gödel Machine architecture" src="figures/dgm.svg" /></p>
+<a class="diagram-cta" href="../diagrams/template.html?data=../dgm/diagrams/dgm.json">
+    Explore the interactive architecture diagram
+    <span>17 nodes, 17 edges — pan, zoom, and follow every subsystem link</span>
+  </a>
+<h2 id="the-mental-model">The mental model</h2>
+<p>DGM is <strong>two nested loops</strong>, not one agent. The <strong>outer loop</strong> is a fixed, hand-written evolutionary driver: it keeps an <em>archive</em> (a tree) of coding-agent versions, samples a parent, and asks a foundation model to (a) diagnose why the parent failed on a benchmark task and (b) rewrite the agent&#x27;s own code to fix it. The <strong>inner loop</strong> is the thing being evolved: a deliberately simple single-shot coding agent — one <code>forward()</code> wrapping a native tool-calling loop with exactly two tools (<code>bash</code> and <code>editor</code>). Each candidate child is validated on staged SWE-bench subsets; if it compiles (produces the expected non-empty patches) it joins the archive. Parent sampling is score-proportional with an exploration discount for under-exploited nodes. That — a tree archive plus score-weighted, exploration-bonus sampling — is the entire operational content of the &quot;Darwinian, open-ended, not greedy hill-climbing&quot; claim, and it lives in about a hundred lines of <code>DGM_outer.py</code>.<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup><sup id="fnref:7"><a class="footnote-ref" href="#fn:7">7</a></sup><sup id="fnref:8"><a class="footnote-ref" href="#fn:8">8</a></sup></p>
+<p>The Gödel-machine-style &quot;rewrite your own code&quot; step is real but <strong>one level deep</strong>: the outer driver, the diagnoser model and its prompts, and the benchmark machinery are fixed; only the inner coding agent is rewritten. The single genuinely recursive mechanism is subtler: the rewrite is performed <em>by the current parent agent itself</em> — a better coder literally becomes a better self-editor. That is the entire &quot;improves its ability to improve&quot; mechanism, and it is real.<sup id="fnref:13"><a class="footnote-ref" href="#fn:13">13</a></sup><sup id="fnref:20"><a class="footnote-ref" href="#fn:20">20</a></sup></p>
+<h2 id="the-outer-loop">The outer loop</h2>
+<p>Entry point: <code>main()</code> in <code>DGM_outer.py</code>. The defaults that matter:</p>
+<table>
+<thead><tr><th>Arg</th><th>Default</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>--max_generation</code></td><td>80</td><td>generations of the evolution loop</td></tr>
+<tr><td><code>--selfimprove_size</code></td><td>2</td><td>children (self-improvement attempts) per generation</td></tr>
+<tr><td><code>--selfimprove_workers</code></td><td>2</td><td>parallel <code>self_improve</code> workers</td></tr>
+<tr><td><code>--choose_selfimproves_method</code></td><td><code>score_child_prop</code></td><td>parent-sampling strategy</td></tr>
+<tr><td><code>--update_archive</code></td><td><code>keep_all</code></td><td>archive admission policy</td></tr>
+<tr><td><code>--num_swe_evals</code></td><td>1</td><td>repeated evals per child (stochasticity control)</td></tr>
+<tr><td><code>--eval_noise</code></td><td>0.1</td><td>score leeway for the <code>keep_better</code> policy</td></tr>
+<tr><td><code>--run_baseline</code></td><td>None</td><td><code>no_darwin</code> / <code>no_selfimprove</code> ablations</td></tr>
+</tbody></table>
+<p><sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup></p>
+<p>Control flow per generation:</p>
+<ol>
+<li><strong>Choose attempts</strong> — <code>choose_selfimproves()</code> returns `(parent_commit,</li>
+</ol>
+<p>entry)<code> pairs, where </code>entry` is <em>what</em> to improve (next section).</p>
+<ol>
+<li><strong>Run children in parallel</strong> — a <code>ThreadPoolExecutor(max_workers=2)</code></li>
+</ol>
+<p>submits one <code>self_improve(...)</code> future per pair, each with a <strong>1.5-hour timeout</strong>. Timeouts are cancelled and logged, other exceptions logged — a generation never hard-fails on one bad child.</p>
+<ol>
+<li><strong>Compile filter</strong> — <code>filter_compiled()</code> keeps only children whose</li>
+</ol>
+<p><code>metadata.json</code> passes the compile gate (§Evaluation).</p>
+<ol>
+<li><strong>Archive update</strong> — <code>update_archive()</code> appends survivors per the</li>
+</ol>
+<p>admission policy.</p>
+<ol>
+<li><strong>Checkpoint</strong> — one JSON line per generation appended to</li>
+</ol>
+<p><code>output_dgm/&lt;run_id&gt;/dgm_metadata.jsonl</code>: generation, attempts, children, compiled children, full archive list. <strong>This file is the entire persistent state of the evolution</strong>; resuming (<code>--continue_from</code>) just reloads the last line&#x27;s archive and generation number.<sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup></p>
+<p><code>run_id</code> is a wall-clock timestamp, so every child directory is <code>&lt;YYYYMMDD_HHMMSS_ffffff&gt;/</code> — <strong>lineage is by directory name plus the <code>parent_commit</code> field in each child&#x27;s <code>metadata.json</code>, not by git</strong>. (The in-container git repo is a throwaway: changes are committed with the message <code>&quot;a nonsense commit message&quot;</code> purely to isolate the child&#x27;s diff.)<sup id="fnref:4"><a class="footnote-ref" href="#fn:4">4</a></sup></p>
+<p>A real bug, verified in the source: the argparse <code>choices</code> list reads <code>[&#x27;random&#x27;, &#x27;score_prop&#x27;, &#x27;score_child_prop&#x27; &#x27;best&#x27;]</code> — a missing comma concatenates the last two into <code>&#x27;score_child_propbest&#x27;</code>. The default still parses, but passing <code>--choose_selfimproves_method best</code> (or <code>score_child_prop</code>) explicitly on the command line would be rejected — so the <code>best</code> sampling branch is <strong>unreachable from the CLI</strong> at this pin.<sup id="fnref:4"><a class="footnote-ref" href="#fn:4">4</a></sup></p>
+<h2 id="the-inner-loop">The inner loop</h2>
+<p><code>AgenticSystem</code> (<code>coding_agent.py:60-168</code>) is strikingly thin. <code>__init__</code> stores the problem statement, repo dir, and base commit, and sets <code>self.code_model = CLAUDE_MODEL</code>, wired to Bedrock Claude 3.5 Sonnet. (The polyglot track differs: the <em>polyglot</em> self-improver runs on o3-mini; the SWE agent always runs on Sonnet, including during self-improvement.)<sup id="fnref:10"><a class="footnote-ref" href="#fn:10">10</a></sup></p>
+<p><code>forward()</code> is <strong>a single call</strong> to <code>chat_with_agent</code> with a fixed instruction template (&quot;I have uploaded a Python code repository in the directory … make changes to the files …&quot;). No planner, no reflection, no retry at this level — all multi-step behavior lives inside <code>chat_with_agent</code>&#x27;s tool loop. After <code>forward()</code> returns, <code>main()</code> diffs the repo against <code>base_commit</code> (including <em>untracked</em> files, via diffing against <code>/dev/null</code>) and writes <code>model_patch.diff</code>. <strong>The patch file is the agent&#x27;s entire output</strong> — no structured result object.<sup id="fnref:10"><a class="footnote-ref" href="#fn:10">10</a></sup></p>
+<p>The actual agentic loop is <code>chat_with_agent_claude</code> (<code>llm_withtools.py</code>): one <code>messages.create</code> with <code>tool_choice={&quot;type&quot;: &quot;auto&quot;}</code>, then <code>while tool_use:</code> — execute, append <code>tool_result</code>, repeat. <strong>No max-step cap.</strong> Termination: (a) the model stops calling tools, (b) the 9-hour <code>timeout</code> on the container exec in the eval harness, (c) the 30-minute <code>timeout 1800</code> on self-improvement runs, or (d) an exception — swallowed by a bare <code>except Exception:</code>, returning whatever history accumulated. Transient API errors get exponential-backoff retries plus up to 3 manual retries; a context-length error string is detected to trigger the <code>solve_contextlength</code> diagnosis path.<sup id="fnref:11"><a class="footnote-ref" href="#fn:11">11</a></sup></p>
+<p>Two methods on <code>AgenticSystem</code> are <strong>dead code</strong>: <code>get_regression_tests</code> and <code>run_regression_tests</code> have no callers anywhere in the repo (verified by grep). The shipped agent never runs regression tests on its own work; test-running happens only via its own <code>bash</code> use and officially in the external harness — <code>score_tie_breaker</code>&#x27;s only in-repo caller is the dead test-runner. Model surface: ~20 supported models listed, but the wired-in choices are narrow — Sonnet for the inner agent, <code>o1-2024-12-17</code> for the diagnoser, o3-mini for the polyglot self-improver. <code>MAX_OUTPUT_TOKENS = 4096</code>; temperature 0.7 for plain calls.<sup id="fnref:12"><a class="footnote-ref" href="#fn:12">12</a></sup></p>
+<p><img alt="Inner agent: one forward() with an uncapped tool loop" src="figures/seq-inner.svg" /></p>
+<h2 id="the-archive-is-the-thesis">The archive is the thesis</h2>
+<p><strong>Storage.</strong> The archive is a <strong>plain Python list of run-id strings</strong>, starting as <code>[&#x27;initial&#x27;]</code>, checkpointed to <code>dgm_metadata.jsonl</code> after every generation. Each member is a directory <code>output_dgm/&lt;run_id&gt;/&lt;child_id&gt;/</code> with <code>metadata.json</code> (<code>run_id</code>, <code>parent_commit</code>, <code>entry</code>, <code>problem_statement</code>, <code>overall_performance</code>, …), <code>model_patch.diff</code>, <code>self_evo.md</code> (the full self-modification chat log), <code>self_improve.log</code>, and <code>predictions/</code>. A child&#x27;s full code is <strong>never stored</strong> — only its diff against its parent; the complete agent at any node is rebuilt by walking the <code>parent_commit</code> chain back to <code>initial</code> and applying patches oldest-first with <code>patch -p1</code>.<sup id="fnref:5"><a class="footnote-ref" href="#fn:5">5</a></sup><sup id="fnref:6"><a class="footnote-ref" href="#fn:6">6</a></sup></p>
+<p><strong>Parent sampling — the &quot;Darwin&quot; in DGM.</strong> <code>choose_selfimproves</code> builds a candidate table from each member&#x27;s <code>metadata.json</code>: score, resolved/unresolved/empty-patch id lists, and a <code>children_count</code> incremented per archived child (broken metadata is skipped with a warning). The default <code>score_child_prop</code> weights each node by <code>sigmoid(10·(score−0.5)) · 1/(1+children)</code>, sampled with <code>random.choices</code> — high scorers are preferred, but heavily-exploited nodes are <em>discounted</em>, an explicit exploration bonus for under-exploited branches. Sampling is with replacement, so one parent can spawn multiple children per generation. Variants: <code>score_prop</code> (no children discount), <code>random</code>, <code>best</code> (top-<em>k</em> — CLI-unreachable at this pin, see the argparse bug), and the <code>no_darwin</code> baseline (always the most recent member: a linear chain with no branching).<sup id="fnref:7"><a class="footnote-ref" href="#fn:7">7</a></sup></p>
+<p><strong>Archive vs. hill-climbing — the key distinction, grounded.</strong> Default <code>keep_all</code>: every compiled child joins the archive <strong>regardless of score</strong> — including children <em>worse</em> than their parent. This is what makes the tree branch into currently-weak lineages: stepping stones, not hill-climbing. <code>keep_better</code> admits children with <code>score &gt;= initial_score − 0.1</code> (<code>eval_noise</code>) — not parent-relative hill-climbing either; the bar is the <em>seed&#x27;s</em> score minus leeway. True greedy hill-climbing (keep only children that beat their parent) does not exist as an option. The word &quot;interesting&quot; never appears in the codebase (verified by grep) — the operational definition of a worthwhile lineage is exactly the sampling weight: high <code>sigmoid(score)</code> × low children count.<sup id="fnref:8"><a class="footnote-ref" href="#fn:8">8</a></sup></p>
+<p><strong>What the child is asked to fix.</strong> One of four entries per chosen parent: 25% <code>solve_empty_patches</code> (if ≥10% of tasks yielded empty patches), 25% <code>solve_stochasticity</code>, 25% <code>solve_contextlength</code> (if the context-length error appeared twice), otherwise a random <em>unresolved</em> instance id — and a parent that resolved everything is skipped, yielding fewer children than <code>selfimprove_size</code>. (Polyglot: entry = random choice over empty+unresolved ids.)<sup id="fnref:9"><a class="footnote-ref" href="#fn:9">9</a></sup></p>
+<p><img alt="Archive parent sampling: score-weighted, children-penalized" src="figures/seq-sampling.svg" /></p>
+<h2 id="one-child-end-to-end">One child, end to end</h2>
+<p>One <code>self_improve()</code> call — the parent→child transition, the atomic unit of this harness:</p>
+<p><strong>① Spin up a sandbox.</strong> A fresh Docker container is built and started per attempt (<code>dgm-container-&lt;run_id&gt;</code>). <strong>② Materialize the parent</strong> by applying all ancestor patches from <code>initial</code> in order with <code>patch -p1</code> (polyglot runs first swap the polyglot agent file in and delete SWE-only files). <strong>③ Isolate the diff</strong>: <code>git add --all</code> plus a throwaway commit, so the child&#x27;s <code>model_patch.diff</code> captures <em>only</em> this attempt&#x27;s edits.</p>
+<p><strong>④ Diagnose</strong> (the &quot;propose&quot; half). <code>diagnose_problem</code> sends the <strong>o1-2024-12-17</strong> diagnoser a system prompt with the <em>full current source</em> of the coding agent plus the failure evidence, demanding a JSON response with <code>log_summarization</code>, <code>potential_improvements</code>, <code>improvement_proposal</code>, <code>implementation_suggestion</code>, and <code>problem_description</code> (up to 3 extraction retries).</p>
+<p><strong>⑤ Rewrite</strong> (the &quot;implement&quot; half). The problem description is handed to a fresh instance of the <strong>current (parent) coding agent</strong> running <em>inside the container</em> against <code>/dgm</code> itself — it edits the live codebase with its <code>bash</code>/<code>editor</code> tools under a 30-minute <code>timeout</code>; afterwards <code>model_patch.diff</code> is extracted and copied to the host.</p>
+<p><strong>⑥ Validate</strong> on staged benchmarks (next section), then optionally <strong>post-diagnose</strong>: <code>diagnose_improvement</code> has o1 compare before/after logs and patches, emitting an <code>impact</code> analysis plus a <code>score</code> in [−2, 2] — stored in metadata but <strong>not used for any gating decision</strong>.<sup id="fnref:13"><a class="footnote-ref" href="#fn:13">13</a></sup></p>
+<p><img alt="Diagnoser proposes, parent rewrites: the one-level-deep recursion" src="figures/seq-diagnose.svg" /></p>
+<p><strong>What the foundation model sees.</strong> The diagnoser&#x27;s system prompt embeds <code>coding_agent.py</code>, all of <code>tools/</code>, all of <code>utils/</code>, plus the ancestor patch files — but <strong>explicitly excludes</strong> <code>utils/evo_utils.py</code>, <code>utils/docker_utils.py</code>, <code>utils/swe_log_parsers.py</code>, and the diagnosis prompt module itself; <code>DGM_outer.py</code> and <code>self_improve_step.py</code> are never shown at all. The rewrite prompt is the agent summary (tool contract and guardrails: general tools not repo-specific, no <code>while True</code>, verify helpers, new deps in <code>requirements.txt</code>) plus the diagnoser&#x27;s suggestion and problem description. The test description tells the agent tests run via <code>cd /dgm/ &amp;&amp; pytest -rA</code>, and &quot;<strong>ONLY test tools and utils. NEVER try to test or run agentic_system.forward().</strong>&quot;<sup id="fnref:14"><a class="footnote-ref" href="#fn:14">14</a></sup></p>
+<p><strong>The constraint that binds is emergent, not enforced.</strong> The rewrite runs against the <strong>whole <code>/dgm</code> tree</strong> in the container — nothing in code forbids the agent from editing <code>DGM_outer.py</code>, <code>self_improve_step.py</code>, or the prompts. But the eval harness only copies the coding-agent subtree into each task container — edits to outer-loop files are silently dropped at eval time, so they can never improve a child&#x27;s score.<sup id="fnref:15"><a class="footnote-ref" href="#fn:15">15</a></sup></p>
+<p>And the train/eval leak: the <strong>private SWE-bench test patch is pasted into the diagnoser&#x27;s prompt</strong> — &quot;general&quot; improvements are proposed with knowledge of exactly what the hidden tests check. The answer patch is loaded too, but the template has no <code>{answer_patch}</code> placeholder, so <code>.format()</code> silently drops it: the diagnoser sees the tests, not the solution.<sup id="fnref:15"><a class="footnote-ref" href="#fn:15">15</a></sup></p>
+<p><img alt="One self-improvement iteration: parent to child" src="figures/seq-iteration.svg" /></p>
+<a class="diagram-cta" href="trace.html">
+    Play the 8-step trace
+    <span>One generation through the Darwin Gödel Machine — sample a parent, diagnose, rewrite, evaluate, archive</span>
+  </a>
+<h2 id="evaluation">Evaluation</h2>
+<p><code>run_harness_swe</code> runs two stages:</p>
+<ol>
+<li><strong>Stage 1 (cheap filter):</strong> the child agent runs on the **small</li>
+</ol>
+<p>subset (10 instances)** with up to 5 parallel workers. Predictions go through the official SWE-bench <code>make_report</code> and aggregate to <code>overall_performance</code>.</p>
+<ol>
+<li><strong>Stage 2 (gated):</strong> only if ≥ `len(test_task_list) ×</li>
+</ol>
+<p>test_more_threshold<code> instances resolved — <strong>≥ 4 of 10</strong> at the default 0.4 — the child runs on the <strong>medium subset (50 instances)</strong>. Medium results <strong>overwrite</strong> </code>overall_performance` (not merged with stage 1).</p>
+<p>There is <strong>no stage 3 in the loop</strong>: the big subset (140) is never touched during evolution (&quot;full eval&quot; = 200 instances).<sup id="fnref:16"><a class="footnote-ref" href="#fn:16">16</a></sup></p>
+<p><strong>Dead gating code (verified).</strong> <code>get_full_eval_threshold</code> computes a second-highest archive score threshold, floored at 0.4, and passes it as <code>full_eval_threshold</code> — but <code>self_improve()</code> accepts it as a parameter and <strong>never uses it</strong>. Likewise <code>test_task_list_big</code> is loaded and never used; big-subset eval exists only as a manual post-hoc step.<sup id="fnref:16"><a class="footnote-ref" href="#fn:16">16</a></sup></p>
+<p><strong>Score</strong> is <code>total_resolved / total_submitted</code>, over whichever stages ran. The seed agent scores 0.2 (12/60 on small+medium). The <strong>compile gate</strong> admits a child only if (1) <code>overall_performance</code> has all four required keys, (2) at least one non-empty patch was produced, and (3) <code>total_submitted_instances</code> meets <code>num_swe_issues</code> when given (catches crashed-partway evals). A child that fails the gate stays on disk — merely excluded from <code>archive</code>, visible in <code>dgm_metadata.jsonl</code> under <code>children</code> vs. <code>children_compiled</code>.<sup id="fnref:17"><a class="footnote-ref" href="#fn:17">17</a></sup></p>
+<p><strong>Cost controls</strong> — no token counting, no dollar accounting anywhere in the codebase (verified by grep). The controls are structural: staged subsets (10 → 50), the 0.4 promotion threshold, 2 self-improvement workers, eval <code>max_workers</code> caps, and timeouts (1.5 h per <code>self_improve</code> future, 30 min in-container rewrite, 9 h per benchmark task). <code>--num_swe_evals</code> (default 1) repeats evals to dampen stochasticity.<sup id="fnref:17"><a class="footnote-ref" href="#fn:17">17</a></sup></p>
+<p><img alt="Staged evaluation gating archive admission" src="figures/seq-eval.svg" /></p>
+<h2 id="the-tool-system">The tool system</h2>
+<p>The inner agent has <strong>exactly two tools</strong>, loaded dynamically: <code>load_all_tools</code> imports every <code>*.py</code> in <code>tools/</code> (minus <code>__init__.py</code>) and requires each to expose <code>tool_info()</code> + <code>tool_function()</code>. Adding a tool is dropping in a file — and the contract is spelled out to the foundation model in the agent summary, so a self-improving child could in principle extend its own toolbelt (the mechanism exists; it is not demonstrated at this pin).</p>
+<ul>
+<li><strong><code>bash</code></strong>: runs a command in <code>/bin/bash -i</code> — 120-second timeout,</li>
+</ul>
+<p>sentinel-based output capture, a <code>filter_error</code> pass that strips ioctl noise. Two docs-vs-code findings, both verified: the description claims &quot;State is persistent across command calls&quot; — <strong>false</strong>, since every invocation constructs a brand-new <code>BashSession</code> (cwd, env, and background jobs don&#x27;t survive). It also claims no internet access — also unenforced (see §Security).</p>
+<ul>
+<li><strong><code>editor</code></strong> (registered name <code>&quot;editor&quot;</code>): <code>view</code> (whole file with</li>
+</ul>
+<p>line numbers, or ≤2-level directory listing), <code>create</code> (refuses if the path exists), <code>edit</code> (<strong>overwrites the entire file</strong> — no partial edits). Outputs truncate at 10,000 chars with a <code>&lt;response clipped&gt;</code> marker. Paths must be absolute.<sup id="fnref:18"><a class="footnote-ref" href="#fn:18">18</a></sup></p>
+<p>Tool-use plumbing: <code>chat_with_agent</code> dispatches on the model string — Claude → <code>chat_with_agent_claude</code>, <code>o3-*</code> → <code>chat_with_agent_openai</code>, anything else → <code>chat_with_agent_manualtools</code>, with a <code>&lt;tool_use&gt;{&#x27;tool_name&#x27;: …, &#x27;tool_input&#x27;: …}&lt;/tool_use&gt;</code> tag protocol parsed by regex + <code>ast.literal_eval</code> and the full tool source pasted into the system prompt. Schemas are converted per provider; for o3 this means OpenAI strict mode. <code>process_tool_call</code> returns errors as strings — tool failures never raise into the agent loop.<sup id="fnref:18"><a class="footnote-ref" href="#fn:18">18</a></sup></p>
+<p><strong>No invented tools exist at this pin</strong> — <code>tools/</code> contains only <code>bash.py</code> and <code>edit.py</code>. The one textual echo of an invention is in the diagnose doc, which cites <code>&quot;edit_line_ranges&quot;</code> as an example tool schema the model has supposedly seen — but no such tool file, log, or patch exists in the pinned repo, so this stays unverified.<sup id="fnref:18"><a class="footnote-ref" href="#fn:18">18</a></sup></p>
+<h2 id="security">Security</h2>
+<p><strong>Sandboxing = Docker, unhardened.</strong> Each self-improvement attempt and each benchmark task runs in its own container — but containers start via plain <code>client.containers.run(...)</code> with <strong>no network restrictions, no memory/CPU limits, no capability drops</strong>. The <code>bash</code> tool&#x27;s &quot;no internet&quot; claim is prompt text, not a firewall rule. Base image: <code>python:3.10-slim</code> + build-essential + git.<sup id="fnref:19"><a class="footnote-ref" href="#fn:19">19</a></sup></p>
+<p><strong>Human oversight: none.</strong> No approval step, no human-in-the-loop gate, no kill-switch beyond the timeouts (verified by grep). The README carries the only warning: a &quot;Safety Consideration&quot; block noting the repo &quot;involves executing untrusted, model-generated code&quot; that &quot;may still behave destructively.&quot;<sup id="fnref:19"><a class="footnote-ref" href="#fn:19">19</a></sup></p>
+<p><strong>Lineage traceability: excellent.</strong> Every generation appends to <code>dgm_metadata.jsonl</code>; every child dir keeps <code>metadata.json</code>, <code>model_patch.diff</code>, <code>self_evo.md</code> (the full self-modification transcript), <code>self_improve.log</code>, and <code>predictions/</code>. Any archive node&#x27;s exact code is reconstructible via the patch-chain walker, and the analysis script can regenerate its eval command.<sup id="fnref:19"><a class="footnote-ref" href="#fn:19">19</a></sup></p>
+<p>Two more findings: API keys (<code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>, AWS credentials) are passed as <strong>environment variables into every container</strong> — so a self-modifying agent with a <code>bash</code> tool runs with the operator&#x27;s keys in env. And the single hard anti-hacking filter is <code>remove_patches_to_tests</code>, which strips test-directory edits from patches before official scoring; the diagnose prompt&#x27;s generality instruction steers, but does not enforce.<sup id="fnref:19"><a class="footnote-ref" href="#fn:19">19</a></sup></p>
+<h2 id="extension-points">Extension points</h2>
+<ul>
+<li><strong>New tools: drop a file in <code>tools/</code>.</strong> The registration protocol is</li>
+</ul>
+<p>just <code>tool_info()</code> + <code>tool_function()</code>, and the contract is spelled out to the foundation model in the agent summary — a self-improving child could in principle extend its own toolbelt (mechanism exists, not demonstrated at this pin).<sup id="fnref:18"><a class="footnote-ref" href="#fn:18">18</a></sup></p>
+<ul>
+<li><strong>New sampling strategies and admission policies.</strong></li>
+</ul>
+<p><code>choose_selfimproves</code> dispatches on a CLI string (currently bugged — the <code>best</code> branch is CLI-unreachable); <code>update_archive</code> switches between <code>keep_all</code> and <code>keep_better</code>. Both are small, readable extension surfaces.<sup id="fnref:4"><a class="footnote-ref" href="#fn:4">4</a></sup><sup id="fnref:8"><a class="footnote-ref" href="#fn:8">8</a></sup></p>
+<ul>
+<li><strong>Prompts are modules.</strong> The diagnose, rewrite, test-description,</li>
+</ul>
+<p>and post-diagnosis prompts are separate files with explicit include/exclude lists — changing <em>what the diagnoser sees</em> is a list edit, not a refactor.<sup id="fnref:14"><a class="footnote-ref" href="#fn:14">14</a></sup></p>
+<ul>
+<li><strong>Benchmarks are JSON.</strong> Subset sizes live in</li>
+</ul>
+<p><code>swe_bench/subsets/*.json</code> (10 / 50 / 140); the stage-2 promotion threshold is a single float (<code>test_more_threshold = 0.4</code>).<sup id="fnref:16"><a class="footnote-ref" href="#fn:16">16</a></sup></p>
+<ul>
+<li><strong>The polyglot track</strong> is the worked example of a new domain:</li>
+</ul>
+<p><code>coding_agent_polyglot.py</code>, <code>polyglot/</code>, the container swap, and o3-mini as the self-improver.<sup id="fnref:10"><a class="footnote-ref" href="#fn:10">10</a></sup><sup id="fnref:12"><a class="footnote-ref" href="#fn:12">12</a></sup></p>
+<h2 id="tradeoffs-and-honest-limits">Tradeoffs and honest limits</h2>
+<p>This is the article&#x27;s spine — report, don&#x27;t hype:</p>
+<ol>
+<li><strong>The recursion is one level deep.</strong> The outer driver, the</li>
+</ol>
+<p>self-improve orchestration, the o1 diagnoser, and all diagnose prompts are fixed, never rewritten; only the inner coding agent evolves. The &quot;improves its ability to improve itself&quot; claim rests on one real mechanism — the rewrite is performed by the <em>current</em> parent agent, so a better coder becomes a better self-editor. But nothing ever improves the <em>diagnoser</em>, the sampling strategy, or the eval design.<sup id="fnref:13"><a class="footnote-ref" href="#fn:13">13</a></sup><sup id="fnref:20"><a class="footnote-ref" href="#fn:20">20</a></sup></p>
+<ol>
+<li><strong>The diagnoser sees the hidden tests.</strong> The private SWE-bench test</li>
+</ol>
+<p>patch is pasted into the improvement-proposal prompt — a real information leak from eval into training.<sup id="fnref:15"><a class="footnote-ref" href="#fn:15">15</a></sup></p>
+<ol>
+<li><strong>Domain specificity is total.</strong> Fitness is benchmark accuracy; the</li>
+</ol>
+<p>code measures nothing about &quot;self-modification ability&quot; as such. The post-hoc <code>diagnose_improvement</code> score (−2..2) is the closest thing, and it gates nothing.<sup id="fnref:17"><a class="footnote-ref" href="#fn:17">17</a></sup><sup id="fnref:20"><a class="footnote-ref" href="#fn:20">20</a></sup></p>
+<ol>
+<li><strong>No code evidence for objective hacking at this pin.</strong> The paper&#x27;s</li>
+</ol>
+<p>reward-hacking anecdotes have no counterpart here: the hallucination-score fields are read <em>only</em> by the analysis plotting script and written nowhere in the main loop. The in-loop defenses are the test-patch stripper and the diagnose prompt&#x27;s generality instruction.<sup id="fnref:19"><a class="footnote-ref" href="#fn:19">19</a></sup><sup id="fnref:20"><a class="footnote-ref" href="#fn:20">20</a></sup></p>
+<ol>
+<li><strong>Rough edges:</strong> the argparse missing-comma bug (<code>best</code> sampling</li>
+</ol>
+<p>CLI-unreachable); dead <code>full_eval_threshold</code> / <code>test_task_list_big</code> plumbing; dead <code>get_regression_tests</code> / <code>run_regression_tests</code>; the false &quot;persistent bash state&quot; claim; no cost accounting of any kind.<sup id="fnref:4"><a class="footnote-ref" href="#fn:4">4</a></sup><sup id="fnref:12"><a class="footnote-ref" href="#fn:12">12</a></sup><sup id="fnref:16"><a class="footnote-ref" href="#fn:16">16</a></sup><sup id="fnref:17"><a class="footnote-ref" href="#fn:17">17</a></sup><sup id="fnref:18"><a class="footnote-ref" href="#fn:18">18</a></sup></p>
+<ol>
+<li><strong>No human in the loop, and thin sandboxing.</strong> Zero approvals,</li>
+</ol>
+<p>unhardened containers, operator API keys mounted as env vars where a self-modifying agent with a <code>bash</code> tool runs. The README&#x27;s safety block is the entirety of the stated posture.<sup id="fnref:19"><a class="footnote-ref" href="#fn:19">19</a></sup></p>
+<ol>
+<li><strong>Model asymmetry confounds the polyglot track.</strong> The SWE</li>
+</ol>
+<p>self-improver runs on Claude 3.5 Sonnet while the polyglot self-improver runs on o3-mini — cross-track comparisons mix agent code with foundation model.<sup id="fnref:10"><a class="footnote-ref" href="#fn:10">10</a></sup></p>
+<ol>
+<li><strong>The v3 paper postdates the pin</strong> (2026-03-12 vs 2025-08-13).</li>
+</ol>
+<p>Paper claims newer than the pin may describe code that isn&#x27;t here. Treat this pin as the primary record, not the paper.<sup id="fnref:20"><a class="footnote-ref" href="#fn:20">20</a></sup></p>
+<h2 id="comparison-matrix-row">Comparison matrix row</h2>
+<table>
+<thead><tr><th>#</th><th>Dimension</th><th>DGM (a565fd2)</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Agent loop</td><td>Outer: fixed evolution driver — 80 gens × 2 children, ThreadPoolExecutor, 1.5h per-child timeout, compile filter, JSONL checkpoint. Inner: single-shot <code>forward()</code> → native tool loop, <strong>no step cap</strong>, bare-<code>except</code> termination <sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup><sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup><sup id="fnref:10"><a class="footnote-ref" href="#fn:10">10</a></sup><sup id="fnref:11"><a class="footnote-ref" href="#fn:11">11</a></sup></td></tr>
+<tr><td>2</td><td>Tool system</td><td>Exactly two tools (bash, editor); <code>tool_info()</code> + <code>tool_function()</code> contract; bash&#x27;s &quot;persistent state&quot;/&quot;no internet&quot; claims false in code; <code>editor</code> overwrites whole files; 10k truncation <sup id="fnref:18"><a class="footnote-ref" href="#fn:18">18</a></sup></td></tr>
+<tr><td>3</td><td>Model providers</td><td>Inner agent = Bedrock Claude 3.5 Sonnet (o3-mini for polyglot); diagnoser = o1-2024-12-17; ~20 models listed, narrow wiring; <code>MAX_OUTPUT_TOKENS = 4096</code>, temp 0.7 <sup id="fnref:12"><a class="footnote-ref" href="#fn:12">12</a></sup></td></tr>
+<tr><td>4</td><td>Prompt construction</td><td>Diagnoser prompt = full inner-agent source + failure evidence + <strong>private test patch</strong> → JSON contract; rewrite prompt = summary + suggestion + problem description; guardrails are prompt text <sup id="fnref:13"><a class="footnote-ref" href="#fn:13">13</a></sup><sup id="fnref:14"><a class="footnote-ref" href="#fn:14">14</a></sup><sup id="fnref:15"><a class="footnote-ref" href="#fn:15">15</a></sup></td></tr>
+<tr><td>5</td><td>Memory/session</td><td>The archive <em>is</em> the memory: run-id list, patch-only storage (<code>parent_commit</code> chain), per-node <code>metadata.json</code> + <code>self_evo.md</code> transcripts; per-generation JSONL checkpoint <sup id="fnref:5"><a class="footnote-ref" href="#fn:5">5</a></sup><sup id="fnref:6"><a class="footnote-ref" href="#fn:6">6</a></sup><sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup></td></tr>
+<tr><td>6</td><td>Reasoning/planning</td><td>No planner/sub-agents; fixed o1 diagnoser (never improved); the rewrite is done by the current parent agent — the one recursive mechanism; post-hoc −2..2 score gates nothing <sup id="fnref:13"><a class="footnote-ref" href="#fn:13">13</a></sup><sup id="fnref:20"><a class="footnote-ref" href="#fn:20">20</a></sup></td></tr>
+<tr><td>7</td><td>Extensibility</td><td>New tool = file in <code>tools/</code>; new sampling method = one CLI string (bugged); policies <code>keep_all</code>/<code>keep_better</code>; subsets are JSON; prompt modules <sup id="fnref:18"><a class="footnote-ref" href="#fn:18">18</a></sup><sup id="fnref:4"><a class="footnote-ref" href="#fn:4">4</a></sup><sup id="fnref:8"><a class="footnote-ref" href="#fn:8">8</a></sup><sup id="fnref:16"><a class="footnote-ref" href="#fn:16">16</a></sup></td></tr>
+<tr><td>8</td><td>Interfaces</td><td>CLI only; <code>analysis/visualize_archive.py</code> rebuilds the tree, regenerates eval commands <sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup><sup id="fnref:6"><a class="footnote-ref" href="#fn:6">6</a></sup><sup id="fnref:16"><a class="footnote-ref" href="#fn:16">16</a></sup></td></tr>
+<tr><td>9</td><td>Failure handling</td><td>Per-child 1.5h timeout + cancel/log; a generation never hard-fails; JSON extraction ×3; tool errors as strings; compile gate drops crashed children; no token/dollar accounting <sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup><sup id="fnref:13"><a class="footnote-ref" href="#fn:13">13</a></sup><sup id="fnref:17"><a class="footnote-ref" href="#fn:17">17</a></sup><sup id="fnref:18"><a class="footnote-ref" href="#fn:18">18</a></sup></td></tr>
+<tr><td>10</td><td>Security model</td><td>Per-task Docker but unhardened — no network/memory/cap limits; zero approvals, no HITL; operator API keys as env vars; test-patch stripping is the sole hard anti-hack; full lineage traceability <sup id="fnref:19"><a class="footnote-ref" href="#fn:19">19</a></sup></td></tr>
+</tbody></table>
+<h2 id="endnotes">Endnotes</h2>
+<p>All notes VERIFIED against <code>main</code> @ <code>a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2</code> in a local clone, with line anchors re-checked 2026-10-10. <code>GH</code> = <code>https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/</code>.</p>
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:1">
+<p>Pin: <code>main</code> @
+    <a href="https://github.com/jennyzzt/dgm/commit/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2">a565fd2</a>
+    (&quot;Update coding_agent_polyglot.py&quot;, 2025-08-13) — VERIFIED in the
+    pinned checkout; no tags exist, so this is the latest commit on
+    <code>main</code>. Size: 39 <code>.py</code> files / ~9,410 lines via <code>wc -l</code>
+    (blanks/comments included; big files: <code>llm_withtools.py</code> 553,
+    <code>self_improve_step.py</code> 447, <code>prompts/self_improvement_prompt.py</code>
+    468, <code>llm.py</code> 359, <code>DGM_outer.py</code> 336, <code>swe_bench/harness.py</code> 295).
+    Apache-2.0 per
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/LICENSE">GH…/LICENSE</a>.
+    The paper&#x27;s v3 (arXiv:2505.22954, revised 2026-03-12) postdates the
+    pin, so paper claims may describe newer code — flags at <sup id="fnref:20"><a class="footnote-ref" href="#fn:20">20</a></sup>. &#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+<li id="fn:2">
+<p>Outer-loop defaults: <code>main()</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L221">GH…/DGM_outer.py#L221</a>;
+    the argument table at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L223-L241">L223-L241</a>
+    (<code>--max_generation</code> 80, <code>--selfimprove_size</code> 2,
+    <code>--selfimprove_workers</code> 2, <code>--choose_selfimproves_method</code>
+    <code>score_child_prop</code>, <code>--update_archive</code> <code>keep_all</code>,
+    <code>--num_swe_evals</code> 1, <code>--eval_noise</code> 0.1, <code>--run_baseline</code> None). &#160;<a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">&#8617;</a></p>
+</li>
+<li id="fn:3">
+<p>Per-generation flow:
+    <code>choose_selfimproves</code> defined at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L50">GH…/DGM_outer.py#L50</a>,
+    called at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L273">L273</a>;
+    <code>ThreadPoolExecutor</code> submission at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L282-L301">L282-L301</a>,
+    1.5-hour future timeout at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L304-L305">L304-L305</a>,
+    timeout/exception handling at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L306-L312">L306-L312</a>;
+    <code>filter_compiled</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L152-L165">L152-L165</a>,
+    called at L314; <code>update_archive</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L174-L190">L174-L190</a>,
+    called at L319; the JSONL checkpoint at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L325-L333">L325-L333</a>;
+    resume logic at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L15-L27">L15-L27</a>. &#160;<a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">&#8617;</a></p>
+</li>
+<li id="fn:4">
+<p><code>run_id</code> is a wall-clock timestamp at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L244-L247">GH…/DGM_outer.py#L244-L247</a>.
+    The throwaway commit with message <code>&quot;a nonsense commit message&quot;</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L305-L310">GH…/self_improve_step.py#L305-L310</a>.
+    The missing-comma bug: <code>choices=[&#x27;random&#x27;, &#x27;score_prop&#x27;,
+    &#x27;score_child_prop&#x27; &#x27;best&#x27;]</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L226-L230">GH…/DGM_outer.py#L226-L230</a>
+    — verified empirically that <code>&#x27;score_child_propbest&#x27;</code> is the
+    resulting string; the <code>best</code> sampling branch at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L101-L106">L101-L106</a>
+    is unreachable from the CLI at this pin. &#160;<a class="footnote-backref" href="#fnref:4" title="Jump back to footnote 4 in the text">&#8617;</a></p>
+</li>
+<li id="fn:5">
+<p>Archive storage: a plain list of run-id strings starting as
+    <code>[&#x27;initial&#x27;]</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L20">GH…/DGM_outer.py#L20</a>;
+    child directory layout (<code>metadata.json</code>, <code>model_patch.diff</code>,
+    <code>self_evo.md</code>, <code>self_improve.log</code>, <code>predictions/</code>) under
+    <code>output_dgm/&lt;run_id&gt;/&lt;child_id&gt;/</code>. &#160;<a class="footnote-backref" href="#fnref:5" title="Jump back to footnote 5 in the text">&#8617;</a></p>
+</li>
+<li id="fn:6">
+<p>Patch-only storage and reconstruction: <code>get_model_patch_paths</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/evo_utils.py#L33-L48">GH…/utils/evo_utils.py#L33-L48</a>
+    (chain reversal at L48); patches applied with <code>patch -p1</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L296-L298">GH…/self_improve_step.py#L296-L298</a>
+    and
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/swe_bench/harness.py#L100-L106">GH…/swe_bench/harness.py#L100-L106</a>;
+    the tree rebuilt as a <code>networkx.DiGraph</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/analysis/visualize_archive.py#L158-L230">GH…/analysis/visualize_archive.py#L158-L230</a>. &#160;<a class="footnote-backref" href="#fnref:6" title="Jump back to footnote 6 in the text">&#8617;</a></p>
+</li>
+<li id="fn:7">
+<p>Sampling: <code>choose_selfimproves</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L50-L150">GH…/DGM_outer.py#L50-L150</a>;
+    candidate table + <code>children_count</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L53-L76">L53-L76</a>;
+    malformed-metadata skip at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L71-L74">L71-L74</a>;
+    <code>no_darwin</code> linear chain at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L79-L81">L79-L81</a>;
+    <code>score_prop</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L82-L90">L82-L90</a>;
+    <code>score_child_prop</code> — weight <code>sigmoid(10·(score−0.5)) ·
+    1/(1+children)</code>, <code>random.choices</code> sampling with replacement — at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L91-L100">L91-L100</a>;
+    <code>random</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L107-L109">L107-L109</a>. &#160;<a class="footnote-backref" href="#fnref:7" title="Jump back to footnote 7 in the text">&#8617;</a></p>
+</li>
+<li id="fn:8">
+<p>Archive vs. hill-climbing: <code>keep_all</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L185-L189">GH…/DGM_outer.py#L185-L189</a>
+    admits every compiled child regardless of score; <code>keep_better</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L178-L184">L178-L184</a>
+    admits children with <code>score &gt;= initial_score − eval_noise</code> — the bar
+    is the <em>seed&#x27;s</em> score minus leeway, not the parent&#x27;s. No keep-only-
+    children-that-beat-their-parent option exists. The word
+    &quot;interesting&quot; never appears in the codebase (verified by grep) —
+    the operational definition of a worthwhile lineage is the sampling
+    weight in <sup id="fnref:7"><a class="footnote-ref" href="#fn:7">7</a></sup>. &#160;<a class="footnote-backref" href="#fnref:8" title="Jump back to footnote 8 in the text">&#8617;</a></p>
+</li>
+<li id="fn:9">
+<p>Entry selection at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L112-L152">GH…/DGM_outer.py#L112-L152</a>:
+    25% <code>solve_empty_patches</code> (if ≥10% of evaluated tasks yielded empty
+    patches), 25% <code>solve_stochasticity</code>, 25% <code>solve_contextlength</code> (if
+    any task log shows the context-length error twice — detection at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L37-L48">L37-L48</a>),
+    otherwise a uniformly random unresolved instance id; parents that
+    resolved everything are skipped at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L149-L152">L149-L152</a>.
+    Polyglot differs: random choice over empty+unresolved ids at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L115-L118">L115-L118</a>. &#160;<a class="footnote-backref" href="#fnref:9" title="Jump back to footnote 9 in the text">&#8617;</a></p>
+</li>
+<li id="fn:10">
+<p>Inner agent: <code>AgenticSystem</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent.py#L60-L168">GH…/coding_agent.py#L60-L168</a>;
+    <code>__init__</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent.py#L61-L91">L61-L91</a>,
+    <code>self.code_model = CLAUDE_MODEL</code> where <code>CLAUDE_MODEL =
+    &#x27;bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0&#x27;</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L13">GH…/llm_withtools.py#L13</a>;
+    polyglot&#x27;s o3-mini branch at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent_polyglot.py#L111">GH…/coding_agent_polyglot.py#L111</a>
+    with <code>OPENAI_MODEL = &#x27;o3-mini-2025-01-31&#x27;</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L14">GH…/llm_withtools.py#L14</a>.
+    <code>forward()</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent.py#L152-L167">GH…/coding_agent.py#L152-L167</a>
+    — a single <code>chat_with_agent</code> call, no planner/reflection/retry;
+    <code>main()</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent.py#L170-L204">L170-L204</a>;
+    <code>diff_versus_commit</code> including untracked files at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/git_utils.py#L44-L77">GH…/utils/git_utils.py#L44-L77</a>;
+    <code>model_patch.diff</code> written at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent.py#L200-L202">L200-L202</a>. &#160;<a class="footnote-backref" href="#fnref:10" title="Jump back to footnote 10 in the text">&#8617;</a></p>
+</li>
+<li id="fn:11">
+<p>The tool loop: <code>chat_with_agent_claude</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L338-L425">GH…/llm_withtools.py#L338-L425</a>;
+    <code>tool_choice={&quot;type&quot;: &quot;auto&quot;}</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L373">L373</a>;
+    <code>while tool_use:</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L380">L380</a>
+    — <strong>no max-step cap</strong> (verified by full-file read; nothing bounds
+    it). Termination: 9-hour container-exec timeout at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/swe_bench/harness.py#L124-L136">GH…/swe_bench/harness.py#L124-L136</a>
+    (<code>timeout 32400</code>); 30-minute self-improvement timeout
+    (<code>timeout 1800</code>) at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L348">GH…/self_improve_step.py#L348</a>;
+    bare <code>except Exception:</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L422-L423">GH…/llm_withtools.py#L422-L423</a>.
+    Retries: exponential backoff at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L24-L29">L24-L29</a>,
+    up to 3 manual retries at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L32">L32, L56-L57</a>. &#160;<a class="footnote-backref" href="#fnref:11" title="Jump back to footnote 11 in the text">&#8617;</a></p>
+</li>
+<li id="fn:12">
+<p>Dead code: <code>get_regression_tests</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent.py#L97-L122">GH…/coding_agent.py#L97-L122</a>
+    and <code>run_regression_tests</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent.py#L124-L150">L124-L150</a>
+    — no callers anywhere (verified by grep); <code>score_tie_breaker</code>
+    imported at L9, called only by the dead method. Model surface:
+    ~20 models listed at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm.py#L11-L40">GH…/llm.py#L11-L40</a>;
+    <code>MAX_OUTPUT_TOKENS = 4096</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm.py#L10">L10</a>;
+    temperature 0.7 at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm.py#L179">L179</a>;
+    diagnoser <code>o1-2024-12-17</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L28">GH…/self_improve_step.py#L28</a>. &#160;<a class="footnote-backref" href="#fnref:12" title="Jump back to footnote 12 in the text">&#8617;</a></p>
+</li>
+<li id="fn:13">
+<p><code>self_improve()</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L223-L418">GH…/self_improve_step.py#L223-L418</a>.
+    Container build at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L264-L278">L264-L278</a>
+    via
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/docker_utils.py#L92-L140">GH…/utils/docker_utils.py#L92-L140</a>;
+    parent materialization at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L296-L303">L296-L303</a>;
+    <code>diagnose_problem</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L30-L77">L30-L77</a>,
+    called at L318; the JSON contract at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L77-L120">GH…/prompts/self_improvement_prompt.py#L77-L120</a>,
+    extracted via <code>extract_json_between_markers</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm.py#L305">GH…/llm.py#L305</a>
+    with up to 3 retries at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L59-L69">L59-L69</a>;
+    the rewrite by the current parent agent itself at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L346-L358">L346-L358</a>;
+    patch extraction at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L360-L379">L360-L379</a>;
+    <code>diagnose_improvement</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L69-L121">L69-L121</a>,
+    called at L407, with the −2..2 <code>score</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/diagnose_improvement_prompt.py#L42-L80">GH…/prompts/diagnose_improvement_prompt.py#L42-L80</a>
+    — stored in metadata, used by no gating decision. &#160;<a class="footnote-backref" href="#fnref:13" title="Jump back to footnote 13 in the text">&#8617;</a></p>
+</li>
+<li id="fn:14">
+<p>What the diagnoser sees: <code>get_diagnose_prompt_swe</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L305-L336">GH…/prompts/self_improvement_prompt.py#L305-L336</a>
+    embeds <code>coding_agent.py</code>, all of <code>tools/</code>, all of <code>utils/</code>, and the
+    ancestor patches (<code>get_current_code</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L409">L409</a>);
+    exclusions at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L327-L332">L327-L332</a>;
+    <code>DGM_outer.py</code> and <code>self_improve_step.py</code> are not in the code files
+    at all. The rewrite prompt at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L174-L181">L174-L181</a>;
+    the summary with the tool contract and guardrails at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L6-L33">L6-L33</a>;
+    the test instruction (&quot;ONLY test tools and utils. NEVER try to test
+    or run agentic_system.forward().&quot;) at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/testrepo_prompt.py#L26">GH…/prompts/testrepo_prompt.py#L26</a>. &#160;<a class="footnote-backref" href="#fnref:14" title="Jump back to footnote 14 in the text">&#8617;</a></p>
+</li>
+<li id="fn:15">
+<p>Emergent constraint: the eval harness copies only the
+    coding-agent subtree into each task container at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/swe_bench/harness.py#L74-L82">GH…/swe_bench/harness.py#L74-L82</a>
+    — edits to <code>DGM_outer.py</code> / <code>self_improve_step.py</code> / prompts are
+    silently dropped at eval time, so they can never improve a child&#x27;s
+    score. The private test patch in the diagnose prompt at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L95-L99">GH…/prompts/self_improvement_prompt.py#L95-L99</a>;
+    the answer patch is loaded at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L321">L321</a>
+    but the template has no <code>{answer_patch}</code> placeholder, so
+    <code>.format()</code> silently drops it — the diagnoser sees the tests, not
+    the solution. &#160;<a class="footnote-backref" href="#fnref:15" title="Jump back to footnote 15 in the text">&#8617;</a></p>
+</li>
+<li id="fn:16">
+<p>Staged eval: <code>run_harness_swe</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L125-L174">GH…/self_improve_step.py#L125-L174</a>;
+    stage 1 on the small subset at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L129-L138">L129-L138</a>
+    (5 parallel workers); official scoring via <code>make_report</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/swe_bench/report.py#L96">GH…/swe_bench/report.py#L96</a>,
+    aggregated by <code>get_all_performance</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L140-L148">L140-L148</a>
+    via
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/evo_utils.py#L50-L96">GH…/utils/evo_utils.py#L50-L96</a>;
+    the stage-2 gate (≥ <code>test_more_threshold</code> = 0.4, i.e. ≥ 4 of 10,
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L268">GH…/DGM_outer.py#L268</a>)
+    and medium-subset run at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L154-L174">L154-L174</a>
+    — medium results <em>overwrite</em> stage-1 results. Subset sizes small 10
+    / medium 50 / big 140 per <code>swe_bench/subsets/*.json</code>; &quot;full eval&quot; =
+    200. Dead gating: <code>get_full_eval_threshold</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L192-L219">GH…/DGM_outer.py#L192-L219</a>
+    passes <code>full_eval_threshold</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L296">L296</a>,
+    accepted as a parameter at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L234">GH…/self_improve_step.py#L234</a>
+    and never used; <code>test_task_list_big</code> loaded at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L258">L258</a>
+    and never used; big-subset eval exists only as the manual
+    <code>test_swebench.py --full_eval</code> step (command generator at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/analysis/visualize_archive.py#L296-L309">GH…/analysis/visualize_archive.py#L296-L309</a>). &#160;<a class="footnote-backref" href="#fnref:16" title="Jump back to footnote 16 in the text">&#8617;</a></p>
+</li>
+<li id="fn:17">
+<p>Scoring and compile gate: <code>accuracy_score =
+    total_resolved / total_submitted</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/evo_utils.py#L81">GH…/utils/evo_utils.py#L81</a>;
+    the seed agent scores 0.2 (12/60 on small+medium) per
+    <code>initial/metadata.json</code>. <code>is_compiled_self_improve</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/evo_utils.py#L98-L127">GH…/utils/evo_utils.py#L98-L127</a>
+    (four required <code>overall_performance</code> keys, ≥1 non-empty patch,
+    <code>total_submitted_instances</code> meets <code>num_swe_issues</code>); applied at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L152-L165">GH…/DGM_outer.py#L152-L165</a>
+    and
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L402-L407">GH…/self_improve_step.py#L402-L407</a>.
+    Failed children stay on disk but are excluded from <code>archive</code>,
+    visible in <code>dgm_metadata.jsonl</code> as <code>children</code> vs.
+    <code>children_compiled</code> (<sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup>). Cost controls: no token or dollar
+    accounting anywhere (verified by grep) — only the structural
+    controls in <sup id="fnref:16"><a class="footnote-ref" href="#fn:16">16</a></sup> plus <code>--num_swe_evals</code> (default 1) at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/swe_bench/harness.py#L184">GH…/swe_bench/harness.py#L184</a>. &#160;<a class="footnote-backref" href="#fnref:17" title="Jump back to footnote 17 in the text">&#8617;</a></p>
+</li>
+<li id="fn:18">
+<p>Tool system: <code>load_all_tools</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/__init__.py#L5-L31">GH…/tools/__init__.py#L5-L31</a>
+    (<code>tool_info()</code> + <code>tool_function()</code> contract). <code>bash</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/bash.py#L3-L24">GH…/tools/bash.py#L3-L24</a>:
+    120-second timeout at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/bash.py#L33">L33</a>,
+    <code>filter_error</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/bash.py#L108">L108</a>;
+    &quot;State is persistent across command calls&quot; at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/bash.py#L11">L11</a>
+    is false — every invocation builds a new <code>BashSession</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/bash.py#L150">L150</a>;
+    &quot;You don&#x27;t have access to the internet via this tool&quot; at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/bash.py#L12">L12</a>
+    is unenforced (see <sup id="fnref:19"><a class="footnote-ref" href="#fn:19">19</a></sup>). <code>editor</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/edit.py#L5">GH…/tools/edit.py#L5</a>:
+    whole-file overwrite at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/edit.py#L14">L14, L108-L113</a>,
+    10,000-char truncation at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/edit.py#L37-L41">L37-L41</a>,
+    absolute paths at L41. Plumbing: dispatch at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L514">GH…/llm_withtools.py#L514</a>;
+    <code>chat_with_agent_openai</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L427">L427</a>,
+    <code>chat_with_agent_manualtools</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L282">L282</a>
+    with the <code>&lt;tool_use&gt;</code> tag protocol parsed by regex +
+    <code>ast.literal_eval</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L62-L103">L62-L103</a>,
+    full tool source in the system prompt at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/tooluse_prompt.py#L5-L33">GH…/prompts/tooluse_prompt.py#L5-L33</a>;
+    per-provider schema conversion at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L105-L151">L105-L151</a>;
+    <code>process_tool_call</code> returning errors as strings at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L16-L22">L16-L22</a>.
+    No invented tools at this pin: <code>tools/</code> holds only <code>bash.py</code> and
+    <code>edit.py</code>; the <code>&quot;edit_line_ranges&quot;</code> mention at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L60">GH…/prompts/self_improvement_prompt.py#L60</a>
+    has no corresponding file, log, or patch — UNVERIFIED beyond the
+    doc string. &#160;<a class="footnote-backref" href="#fnref:18" title="Jump back to footnote 18 in the text">&#8617;</a></p>
+</li>
+<li id="fn:19">
+<p>Safety. Containers per attempt/task: <code>self_improve_step.py</code>
+    (<sup id="fnref:13"><a class="footnote-ref" href="#fn:13">13</a></sup>) and
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/swe_bench/harness.py#L52">GH…/swe_bench/harness.py#L52</a>;
+    unhardened launch — plain <code>client.containers.run(...)</code> with no
+    network, memory/CPU, or capability limits — at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/docker_utils.py#L131-L140">GH…/utils/docker_utils.py#L131-L140</a>;
+    base image <code>python:3.10-slim</code> per <code>Dockerfile</code>. No approvals, no
+    human-in-the-loop, no kill-switch beyond timeouts (verified by
+    grep); the README&#x27;s &quot;Safety Consideration&quot; block is the only
+    stated posture. Lineage: per-generation JSONL (<sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup>), per-child
+    <code>metadata.json</code> / <code>model_patch.diff</code> / <code>self_evo.md</code> /
+    <code>self_improve.log</code> / <code>predictions/</code>, patch-chain reconstruction
+    (<sup id="fnref:6"><a class="footnote-ref" href="#fn:6">6</a></sup>), eval-command regeneration at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/analysis/visualize_archive.py#L296-L309">GH…/analysis/visualize_archive.py#L296-L309</a>.
+    API keys passed as env vars into every container at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L339-L347">GH…/self_improve_step.py#L339-L347</a>
+    and
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/swe_bench/harness.py#L113-L121">GH…/swe_bench/harness.py#L113-L121</a>.
+    Anti-hacking: <code>remove_patches_to_tests</code> at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/swe_bench/report.py#L37-L66">GH…/swe_bench/report.py#L37-L66</a>;
+    the diagnose prompt&#x27;s generality instruction at
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L64-L74">GH…/prompts/self_improvement_prompt.py#L64-L74</a>.
+    No objective-hacking code evidence at this pin:
+    <code>hallucination_performance</code> / <code>solved_halluc_score</code> /
+    <code>percent_toolutilized</code> are read only by
+    <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/analysis/visualize_archive.py#L70-L88">GH…/analysis/visualize_archive.py#L70-L88</a>
+    and written nowhere in the main loop — the hallucination-detection
+    eval was external/post-hoc. &#160;<a class="footnote-backref" href="#fnref:19" title="Jump back to footnote 19 in the text">&#8617;</a></p>
+</li>
+<li id="fn:20">
+<p>Where the recursion holds vs. hype. The outer driver
+    (<code>DGM_outer.py</code>), <code>self_improve_step.py</code>, the o1 diagnoser, and all
+    diagnose prompts are fixed — never rewritten; only the inner coding
+    agent evolves. The &quot;improves its ability to improve&quot; mechanism is
+    the one real recursion: the rewrite is performed by the current
+    parent agent itself (<sup id="fnref:13"><a class="footnote-ref" href="#fn:13">13</a></sup>). Fitness is SWE-bench (or Polyglot)
+    accuracy — there is no independent metric of self-modification
+    ability; the post-hoc −2..2 <code>diagnose_improvement</code> score gates
+    nothing (<sup id="fnref:13"><a class="footnote-ref" href="#fn:13">13</a></sup><sup id="fnref:17"><a class="footnote-ref" href="#fn:17">17</a></sup>). The paper&#x27;s v3 (arXiv:2505.22954, revised
+    2026-03-12) postdates the pin (2025-08-13): claims newer than the
+    pin — named invented tools, the Node 114-style reward-hacking
+    episode — may describe code that is not in this tree; no code, log,
+    or metadata in this pin corroborates them (<sup id="fnref:18"><a class="footnote-ref" href="#fn:18">18</a></sup><sup id="fnref:19"><a class="footnote-ref" href="#fn:19">19</a></sup>). &#160;<a class="footnote-backref" href="#fnref:20" title="Jump back to footnote 20 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>
+</main>
+</body>
+</html>

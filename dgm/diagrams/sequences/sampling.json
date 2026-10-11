@@ -1,0 +1,61 @@
+{
+ "messages": [
+  {
+   "from": 0,
+   "label": "read metadata.json per member",
+   "to": 1
+  },
+  {
+   "dashed": true,
+   "from": 1,
+   "label": "score, resolved / unresolved / empty ids",
+   "to": 0
+  },
+  {
+   "from": 0,
+   "label": "children_count per node",
+   "self": true,
+   "to": 0
+  },
+  {
+   "from": 0,
+   "label": "w = sigmoid(10*(s-0.5)) / (1+children)",
+   "to": 2
+  },
+  {
+   "from": 2,
+   "label": "random.choices(w, k=2)",
+   "self": true,
+   "to": 2
+  },
+  {
+   "from": 0,
+   "label": "entry: 25% pseudo-entry, else unresolved id",
+   "self": true,
+   "to": 0
+  },
+  {
+   "note": "sampling with replacement: one parent can yield several children",
+   "span": [
+    0,
+    2
+   ],
+   "text": "with replacement"
+  },
+  {
+   "note": "no_darwin baseline: always the most recent member, a linear chain",
+   "span": [
+    0,
+    2
+   ],
+   "text": "baseline"
+  }
+ ],
+ "participants": [
+  "choose_selfimproves",
+  "Archive metadata",
+  "Sampler"
+ ],
+ "subtitle": "score_child_prop: score weighting with an exploration discount",
+ "title": "DGM: archive parent sampling"
+}

@@ -1,0 +1,60 @@
+{
+ "messages": [
+  {
+   "from": 0,
+   "label": "system prompt: full agent source + ancestor patches",
+   "to": 1
+  },
+  {
+   "from": 0,
+   "label": "user prompt: failure evidence + test patch",
+   "to": 1
+  },
+  {
+   "dashed": true,
+   "from": 1,
+   "label": "JSON: proposal + implementation_suggestion (3 retries)",
+   "to": 0
+  },
+  {
+   "from": 0,
+   "label": "rewrite prompt: summary + suggestion + problem",
+   "to": 2
+  },
+  {
+   "from": 2,
+   "label": "edit /dgm (timeout 1800)",
+   "self": true,
+   "to": 2
+  },
+  {
+   "dashed": true,
+   "from": 2,
+   "label": "model_patch.diff",
+   "to": 0
+  },
+  {
+   "note": "DGM_outer.py and self_improve_step.py are never shown to the diagnoser",
+   "span": [
+    0,
+    2
+   ],
+   "text": "fixed outer loop"
+  },
+  {
+   "note": "the private test patch is in the prompt: the diagnoser sees the hidden tests",
+   "span": [
+    0,
+    2
+   ],
+   "text": "train/eval leak"
+  }
+ ],
+ "participants": [
+  "self_improve_step",
+  "Diagnoser (o1-2024-12-17)",
+  "Parent agent"
+ ],
+ "subtitle": "diagnose_problem() with o1, then the rewrite by the parent agent itself",
+ "title": "DGM: the diagnoser proposes a patch"
+}

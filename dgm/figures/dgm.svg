@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -70 1970 876" width="1600" height="711" font-family="system-ui, -apple-system, sans-serif">
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 z" fill="#8a7a66"/></marker>
+</defs>
+<text x="-40" y="-36" font-size="26" font-weight="700" fill="#ece1d3">Darwin Gödel Machine architecture</text>
+<text x="-40" y="-10" font-size="15" fill="#a89880">jennyzzt/dgm @ a565fd2</text>
+<g>
+<path d="M 160.0 116 C 160.0 133.0, 210.0 133.0, 210.0 150" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="193" y="133" font-size="13" fill="#a89880">2 (parent, entry) per gen</text>
+<path d="M 160.0 246 C 160.0 263.0, 210.0 263.0, 210.0 280" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="193" y="263" font-size="13" fill="#a89880">pick what to fix</text>
+<path d="M 20 198.0 H -10 V 718.0 H 20" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="-18" y="450" font-size="13" fill="#a89880">read scores, children_count</text>
+<path d="M 20 68.0 H -10 V 718.0 H 20" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="-18" y="400" font-size="13" fill="#a89880">JSONL checkpoint</text>
+<path d="M 400 328.0 C 495.0 328.0, 415.0 68.0, 510 68.0" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="469" y="131" font-size="13" fill="#a89880">launch self_improve</text>
+<path d="M 700.0 116 C 700.0 133.0, 700.0 133.0, 700.0 150" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="708" y="133" font-size="13" fill="#a89880">fresh dgm-container</text>
+<path d="M 700.0 246 C 700.0 263.0, 700.0 263.0, 700.0 280" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="708" y="263" font-size="13" fill="#a89880">agent source + patches</text>
+<path d="M 700.0 376 C 700.0 393.0, 700.0 393.0, 700.0 410" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="708" y="393" font-size="13" fill="#a89880">improvement_proposal JSON</text>
+<path d="M 700.0 506 C 700.0 523.0, 700.0 523.0, 700.0 540" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="708" y="523" font-size="13" fill="#a89880">extract diff</text>
+<path d="M 890 588.0 C 985.0 588.0, 905.0 68.0, 1000 68.0" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="937" y="534" font-size="13" fill="#a89880">model_patch.diff</text>
+<path d="M 1190.0 116 C 1190.0 133.0, 1190.0 133.0, 1190.0 150" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1198" y="133" font-size="13" fill="#a89880">overall_performance</text>
+<path d="M 1190.0 246 C 1190.0 263.0, 1190.0 263.0, 1190.0 280" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1198" y="263" font-size="13" fill="#a89880">o1 impact analysis</text>
+<path d="M 1190.0 376 C 1190.0 523.0, 1190.0 523.0, 1190.0 670" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1198" y="523" font-size="13" fill="#a89880">score gates nothing</text>
+<path d="M 1000 718.0 C 860 718.0, 540 718.0, 400 718.0" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="708" y="718" font-size="13" fill="#a89880">append survivors (keep_all)</text>
+<path d="M 1630.0 116 C 1630.0 133.0, 1680.0 133.0, 1680.0 150" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1663" y="133" font-size="13" fill="#a89880">forward(): one chat_with_agent</text>
+<path d="M 1680.0 246 C 1680.0 263.0, 1680.0 263.0, 1680.0 280" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1688" y="263" font-size="13" fill="#a89880">bash / editor calls</text>
+<path d="M 1870 68.0 H 1900 V 458.0 H 1870" fill="none" stroke="#8a7a66" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1828" y="266" font-size="13" fill="#a89880">Sonnet 3.5</text>
+</g><g>
+<rect x="20" y="20" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="20" y="20" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="42" cy="42" r="13" fill="#1f6feb"/><text x="42" y="47" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">1</text>
+<text x="64" y="48" font-size="15" font-weight="600" fill="#ece1d3">DGM_outer.py driver</text><text x="64" y="68" font-size="12" fill="#a89880">80 gens x 2 children; 1.5h timeout</text>
+<text x="34" y="104" font-size="11" fill="#a89880">2 source links · verified</text>
+<rect x="20" y="150" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="20" y="150" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="42" cy="172" r="13" fill="#1f6feb"/><text x="42" y="177" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">2</text>
+<text x="64" y="178" font-size="15" font-weight="600" fill="#ece1d3">choose_selfimproves</text><text x="64" y="198" font-size="12" fill="#a89880">sigmoid(10*(s-0.5)) / (1+children)</text>
+<text x="34" y="234" font-size="11" fill="#a89880">1 source link · verified</text>
+<rect x="20" y="280" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="20" y="280" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="42" cy="302" r="13" fill="#1f6feb"/><text x="42" y="307" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">3</text>
+<text x="64" y="308" font-size="15" font-weight="600" fill="#ece1d3">entry selection</text><text x="64" y="328" font-size="12" fill="#a89880">empty/stochastic/ctxlen/unresolved-id</text>
+<text x="34" y="364" font-size="11" fill="#a89880">1 source link · verified</text>
+<rect x="20" y="670" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="20" y="670" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="42" cy="692" r="13" fill="#1f6feb"/><text x="42" y="697" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">13</text>
+<text x="64" y="698" font-size="15" font-weight="600" fill="#ece1d3">Archive tree</text><text x="64" y="718" font-size="12" fill="#a89880">run-id list; patch-chain; JSONL log</text>
+<text x="34" y="754" font-size="11" fill="#a89880">3 source links · verified</text>
+<rect x="510" y="20" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="510" y="20" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="532" cy="42" r="13" fill="#1f6feb"/><text x="532" y="47" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">4</text>
+<text x="554" y="48" font-size="15" font-weight="600" fill="#ece1d3">Docker sandbox</text><text x="554" y="68" font-size="12" fill="#a89880">fresh dgm-container-&lt;run_id&gt; per attempt</text>
+<text x="524" y="104" font-size="11" fill="#a89880">2 source links · verified</text>
+<rect x="510" y="150" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="510" y="150" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="532" cy="172" r="13" fill="#1f6feb"/><text x="532" y="177" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">5</text>
+<text x="554" y="178" font-size="15" font-weight="600" fill="#ece1d3">Parent agent</text><text x="554" y="198" font-size="12" fill="#a89880">ancestor patches applied oldest-first</text>
+<text x="524" y="234" font-size="11" fill="#a89880">2 source links · verified</text>
+<rect x="510" y="280" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="510" y="280" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="532" cy="302" r="13" fill="#1f6feb"/><text x="532" y="307" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">6</text>
+<text x="554" y="308" font-size="15" font-weight="600" fill="#ece1d3">diagnose_problem (o1)</text><text x="554" y="328" font-size="12" fill="#a89880">source + failures + test patch -&gt; JSON</text>
+<text x="524" y="364" font-size="11" fill="#a89880">3 source links · verified</text>
+<rect x="510" y="410" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="510" y="410" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="532" cy="432" r="13" fill="#1f6feb"/><text x="532" y="437" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">7</text>
+<text x="554" y="438" font-size="15" font-weight="600" fill="#ece1d3">Rewrite by parent agent</text><text x="554" y="458" font-size="12" fill="#a89880">parent edits /dgm itself; 30-min timeout</text>
+<text x="524" y="494" font-size="11" fill="#a89880">1 source link · verified</text>
+<rect x="510" y="540" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="510" y="540" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="532" cy="562" r="13" fill="#1f6feb"/><text x="532" y="567" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">8</text>
+<text x="554" y="568" font-size="15" font-weight="600" fill="#ece1d3">Child patch</text><text x="554" y="588" font-size="12" fill="#a89880">model_patch.diff vs throwaway commit</text>
+<text x="524" y="624" font-size="11" fill="#a89880">2 source links · verified</text>
+<rect x="1000" y="20" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="1000" y="20" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="1022" cy="42" r="13" fill="#1f6feb"/><text x="1022" y="47" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">9</text>
+<text x="1044" y="48" font-size="15" font-weight="600" fill="#ece1d3">run_harness_swe</text><text x="1044" y="68" font-size="12" fill="#a89880">10 inst -&gt; 50 inst if &gt;= 4/10 resolve</text>
+<text x="1014" y="104" font-size="11" fill="#a89880">1 source link · verified</text>
+<rect x="1000" y="150" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="1000" y="150" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="1022" cy="172" r="13" fill="#1f6feb"/><text x="1022" y="177" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">10</text>
+<text x="1044" y="178" font-size="15" font-weight="600" fill="#ece1d3">Compile gate</text><text x="1044" y="198" font-size="12" fill="#a89880">4 metadata keys + &gt;=1 non-empty patch</text>
+<text x="1014" y="234" font-size="11" fill="#a89880">2 source links · verified</text>
+<rect x="1000" y="280" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="1000" y="280" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="1022" cy="302" r="13" fill="#1f6feb"/><text x="1022" y="307" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">11</text>
+<text x="1044" y="308" font-size="15" font-weight="600" fill="#ece1d3">diagnose_improvement</text><text x="1044" y="328" font-size="12" fill="#a89880">o1 score [-2,2]; stored, gates nothing</text>
+<text x="1014" y="364" font-size="11" fill="#a89880">2 source links · verified</text>
+<rect x="1000" y="670" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="1000" y="670" width="5" height="96" rx="2" fill="#d08c4e"/>
+<circle cx="1022" cy="692" r="13" fill="#1f6feb"/><text x="1022" y="697" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">12</text>
+<text x="1044" y="698" font-size="15" font-weight="600" fill="#ece1d3">update_archive</text><text x="1044" y="718" font-size="12" fill="#a89880">keep_all; failures stay on disk</text>
+<text x="1014" y="754" font-size="11" fill="#a89880">1 source link · verified</text>
+<rect x="1490" y="20" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="1490" y="20" width="5" height="96" rx="2" fill="#d08c4e"/>
+<text x="1534" y="48" font-size="15" font-weight="600" fill="#ece1d3">AgenticSystem</text><text x="1534" y="68" font-size="12" fill="#a89880">forward(): one chat_with_agent call</text>
+<text x="1504" y="104" font-size="11" fill="#a89880">2 source links · verified</text>
+<rect x="1490" y="150" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="1490" y="150" width="5" height="96" rx="2" fill="#d08c4e"/>
+<text x="1534" y="178" font-size="15" font-weight="600" fill="#ece1d3">chat_with_agent_claude</text><text x="1534" y="198" font-size="12" fill="#a89880">while tool_use:; no cap; bare-except end</text>
+<text x="1504" y="234" font-size="11" fill="#a89880">1 source link · verified</text>
+<rect x="1490" y="280" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="1490" y="280" width="5" height="96" rx="2" fill="#d08c4e"/>
+<text x="1534" y="308" font-size="15" font-weight="600" fill="#ece1d3">tools/: bash, editor</text><text x="1534" y="328" font-size="12" fill="#a89880">each tool: 2 functions; drop-in file</text>
+<text x="1504" y="364" font-size="11" fill="#a89880">1 source link · verified</text>
+<rect x="1490" y="410" width="380" height="96" rx="10" fill="#1f1a15" stroke="#3a2f26" stroke-width="1.5"/><rect x="1490" y="410" width="5" height="96" rx="2" fill="#d08c4e"/>
+<text x="1534" y="438" font-size="15" font-weight="600" fill="#ece1d3">LLM backends</text><text x="1534" y="458" font-size="12" fill="#a89880">Sonnet 3.5 / o1 / o3-mini (polyglot)</text>
+<text x="1504" y="494" font-size="11" fill="#a89880">2 source links · verified</text>
+</g>
+<g font-size="12" fill="#a89880">
+<rect x="1600" y="771" width="12" height="12" rx="2" fill="#d08c4e"/><text x="1617" y="782">verified</text>
+<rect x="1705" y="771" width="12" height="12" rx="2" fill="#7c8aa0"/><text x="1722" y="782">docs</text>
+<rect x="1810" y="771" width="12" height="12" rx="2" fill="#8a7a66"/><text x="1827" y="782">inferred</text>
+</g></svg>
