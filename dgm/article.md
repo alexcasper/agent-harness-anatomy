@@ -23,6 +23,8 @@ precision instruments. Pinning caveat up front: the paper's v3
 (2026-03-12) postdates this pin (2025-08-13), so paper claims may
 describe code that isn't here — flags are in the endnotes.[^1][^20]
 
+![Darwin Gödel Machine architecture](figures/dgm.svg)
+
 ## The mental model
 
 DGM is **two nested loops**, not one agent. The **outer loop** is a fixed,
@@ -141,6 +143,8 @@ the wired-in choices are narrow — Sonnet for the inner agent,
 self-improver. `MAX_OUTPUT_TOKENS = 4096`; temperature 0.7 for plain
 calls.[^12]
 
+![Inner agent: one forward() with an uncapped tool loop](figures/seq-inner.svg)
+
 ## The archive is the thesis
 
 **Storage.** The archive is a **plain Python list of run-id strings**,
@@ -189,6 +193,8 @@ instance id — and a parent that resolved everything is skipped, yielding
 fewer children than `selfimprove_size`. (Polyglot: entry = random
 choice over empty+unresolved ids.)[^9]
 
+![Archive parent sampling: score-weighted, children-penalized](figures/seq-sampling.svg)
+
 ## One child, end to end
 
 One `self_improve()` call — the parent→child transition, the atomic
@@ -221,6 +227,8 @@ logs and patches, emitting an `impact` analysis plus a `score` in
 [−2, 2] — stored in metadata but **not used for any gating
 decision**.[^13]
 
+![Diagnoser proposes, parent rewrites: the one-level-deep recursion](figures/seq-diagnose.svg)
+
 **What the foundation model sees.** The diagnoser's system prompt
 embeds `coding_agent.py`, all of `tools/`, all of `utils/`, plus the
 ancestor patch files — but **explicitly excludes** `utils/evo_utils.py`,
@@ -248,6 +256,8 @@ with knowledge of exactly what the hidden tests check. The answer patch
 is loaded too, but the template has no `{answer_patch}` placeholder, so
 `.format()` silently drops it: the diagnoser sees the tests, not the
 solution.[^15]
+
+![One self-improvement iteration: parent to child](figures/seq-iteration.svg)
 
 ## Evaluation
 
@@ -288,6 +298,8 @@ workers, eval `max_workers` caps, and timeouts (1.5 h per `self_improve`
 future, 30 min in-container rewrite, 9 h per benchmark task).
 `--num_swe_evals` (default 1) repeats evals to dampen
 stochasticity.[^17]
+
+![Staged evaluation gating archive admission](figures/seq-eval.svg)
 
 ## The tool system
 
