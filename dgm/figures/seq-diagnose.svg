@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1164" width="1600" font-family="system-ui, -apple-system, sans-serif">
+<defs><marker id="arrc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 z" fill="#d08c4e"/></marker><marker id="arrr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 z" fill="#8a7a66"/></marker></defs>
+<rect x="0" y="0" width="1600" height="1164" fill="#f7f2e9"/>
+<text x="140.65934065934067" y="44" font-size="26" font-weight="700" fill="#000000">DGM: the diagnoser proposes a patch</text>
+<text x="140.65934065934067" y="74" font-size="15" fill="#000000">diagnose_problem() with o1, then the rewrite by the parent agent itself</text>
+<line x1="360" y1="110" x2="360" y2="1058" stroke="#3a2f26" stroke-width="2" stroke-dasharray="8 6"/>
+<rect x="176" y="82" width="369" height="56" rx="10" fill="#ffffff" stroke="#3a2f26" stroke-width="1.5"/>
+<text x="360" y="116" text-anchor="middle" font-size="16" font-weight="600" fill="#000000">self_improve_step</text>
+<line x1="800" y1="110" x2="800" y2="1058" stroke="#3a2f26" stroke-width="2" stroke-dasharray="8 6"/>
+<rect x="615" y="82" width="369" height="56" rx="10" fill="#ffffff" stroke="#3a2f26" stroke-width="1.5"/>
+<text x="800" y="116" text-anchor="middle" font-size="16" font-weight="600" fill="#000000">Diagnoser (o1-2024-12-17)</text>
+<line x1="1240" y1="110" x2="1240" y2="1058" stroke="#3a2f26" stroke-width="2" stroke-dasharray="8 6"/>
+<rect x="1055" y="82" width="369" height="56" rx="10" fill="#ffffff" stroke="#3a2f26" stroke-width="1.5"/>
+<text x="1240" y="116" text-anchor="middle" font-size="16" font-weight="600" fill="#000000">Parent agent</text>
+<line x1="360" y1="295" x2="790" y2="295" stroke="#d08c4e" stroke-width="2" marker-end="url(#arrc)"/>
+<circle cx="502" cy="281" r="11" fill="#ffffff" stroke="#d08c4e" stroke-width="1.5"/>
+<text x="502" y="286" text-anchor="middle" font-size="12" font-weight="700" fill="#000000">1</text>
+<text x="520" y="286" font-size="14" fill="#000000">system prompt: full agent source + ancestor patches</text>
+<line x1="360" y1="390" x2="790" y2="390" stroke="#d08c4e" stroke-width="2" marker-end="url(#arrc)"/>
+<circle cx="502" cy="376" r="11" fill="#ffffff" stroke="#d08c4e" stroke-width="1.5"/>
+<text x="502" y="381" text-anchor="middle" font-size="12" font-weight="700" fill="#000000">2</text>
+<text x="520" y="381" font-size="14" fill="#000000">user prompt: failure evidence + test patch</text>
+<line x1="800" y1="485" x2="370" y2="485" stroke="#8a7a66" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrr)"/>
+<circle cx="502" cy="471" r="11" fill="#ffffff" stroke="#8a7a66" stroke-width="1.5"/>
+<text x="502" y="476" text-anchor="middle" font-size="12" font-weight="700" fill="#000000">3</text>
+<text x="520" y="476" font-size="14" fill="#000000">JSON: proposal + implementation_suggestion (3 retries)</text>
+<line x1="360" y1="580" x2="1230" y2="580" stroke="#d08c4e" stroke-width="2" marker-end="url(#arrc)"/>
+<circle cx="722" cy="566" r="11" fill="#ffffff" stroke="#d08c4e" stroke-width="1.5"/>
+<text x="722" y="571" text-anchor="middle" font-size="12" font-weight="700" fill="#000000">4</text>
+<text x="740" y="571" font-size="14" fill="#000000">rewrite prompt: summary + suggestion + problem</text>
+<path d="M 1240 675 h 77 v 46 H 1250" fill="none" stroke="#d08c4e" stroke-width="2" marker-end="url(#arrc)"/>
+<circle cx="1278" cy="659" r="11" fill="#ffffff" stroke="#d08c4e" stroke-width="1.5"/>
+<text x="1278" y="664" text-anchor="middle" font-size="12" font-weight="700" fill="#000000">5</text>
+<text x="1327" y="680" font-size="14" fill="#000000">edit /dgm (timeout 1800)</text>
+<line x1="1240" y1="770" x2="370" y2="770" stroke="#8a7a66" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrr)"/>
+<circle cx="722" cy="756" r="11" fill="#ffffff" stroke="#8a7a66" stroke-width="1.5"/>
+<text x="722" y="761" text-anchor="middle" font-size="12" font-weight="700" fill="#000000">6</text>
+<text x="740" y="761" font-size="14" fill="#000000">model_patch.diff</text>
+<rect x="176" y="823" width="1248" height="44" rx="8" fill="#d08c4e" fill-opacity="0.13" stroke="#d08c4e" stroke-width="1"/>
+<text x="800" y="850" text-anchor="middle" font-size="14" fill="#000000">fixed outer loop</text>
+<rect x="176" y="935" width="1248" height="44" rx="8" fill="#d08c4e" fill-opacity="0.13" stroke="#d08c4e" stroke-width="1"/>
+<text x="800" y="962" text-anchor="middle" font-size="14" fill="#000000">train/eval leak</text>
+</svg>

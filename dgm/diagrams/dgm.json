@@ -1,0 +1,450 @@
+{
+ "edges": [
+  {
+   "from": "outer",
+   "label": "2 (parent, entry) per gen",
+   "to": "sampling"
+  },
+  {
+   "from": "sampling",
+   "label": "pick what to fix",
+   "to": "entry"
+  },
+  {
+   "from": "sampling",
+   "label": "read scores, children_count",
+   "label_dy": 122,
+   "to": "archive"
+  },
+  {
+   "from": "outer",
+   "label": "JSONL checkpoint",
+   "label_dy": 170,
+   "to": "archive"
+  },
+  {
+   "from": "entry",
+   "label": "launch self_improve",
+   "label_t": 0.68,
+   "to": "sandbox"
+  },
+  {
+   "from": "sandbox",
+   "label": "fresh dgm-container",
+   "to": "parent"
+  },
+  {
+   "from": "parent",
+   "label": "agent source + patches",
+   "to": "diagnoser"
+  },
+  {
+   "from": "diagnoser",
+   "label": "improvement_proposal JSON",
+   "to": "rewrite"
+  },
+  {
+   "from": "rewrite",
+   "label": "extract diff",
+   "to": "child"
+  },
+  {
+   "from": "child",
+   "label": "model_patch.diff",
+   "label_t": 0.2,
+   "to": "eval"
+  },
+  {
+   "from": "eval",
+   "label": "overall_performance",
+   "to": "compile"
+  },
+  {
+   "from": "compile",
+   "label": "o1 impact analysis",
+   "to": "postdiag"
+  },
+  {
+   "from": "postdiag",
+   "label": "score gates nothing",
+   "to": "admit"
+  },
+  {
+   "from": "admit",
+   "label": "append survivors (keep_all)",
+   "to": "archive"
+  },
+  {
+   "from": "inner",
+   "label": "forward(): one chat_with_agent",
+   "to": "tooloop"
+  },
+  {
+   "from": "tooloop",
+   "label": "bash / editor calls",
+   "to": "tools"
+  },
+  {
+   "from": "inner",
+   "label": "Sonnet 3.5",
+   "label_dx": -80,
+   "label_dy": 100,
+   "to": "llms"
+  }
+ ],
+ "nodes": [
+  {
+   "excerpt": "pairs = choose_selfimproves(...)  # (parent, entry)\nex.submit(self_improve, ...)  # 1.5h timeout each",
+   "grade": "verified",
+   "h": 96,
+   "id": "outer",
+   "label": "DGM_outer.py driver",
+   "links": [
+    {
+     "label": "DGM_outer.py:221-241",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L221-L241"
+    },
+    {
+     "label": "DGM_outer.py:270-333",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L270-L333"
+    }
+   ],
+   "step": 1,
+   "sub": "80 gens x 2 children; 1.5h timeout",
+   "w": 380,
+   "x": 20,
+   "y": 20
+  },
+  {
+   "excerpt": "w = sigmoid(10 * (score - 0.5)) / (1 + children)\nrandom.choices(cands, weights=w, k=selfimprove_size)",
+   "grade": "verified",
+   "h": 96,
+   "id": "sampling",
+   "label": "choose_selfimproves",
+   "links": [
+    {
+     "label": "DGM_outer.py:50-109",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L50-L109"
+    }
+   ],
+   "step": 2,
+   "sub": "sigmoid(10*(s-0.5)) / (1+children)",
+   "w": 380,
+   "x": 20,
+   "y": 150
+  },
+  {
+   "excerpt": "# 25%: empty_patches / stochasticity / contextlength\n# else: random unresolved instance id",
+   "grade": "verified",
+   "h": 96,
+   "id": "entry",
+   "label": "entry selection",
+   "links": [
+    {
+     "label": "DGM_outer.py:112-152",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L112-L152"
+    }
+   ],
+   "step": 3,
+   "sub": "empty/stochastic/ctxlen/unresolved-id",
+   "w": 380,
+   "x": 20,
+   "y": 280
+  },
+  {
+   "excerpt": "archive = ['initial']  # list of run-id strings\n# + one dgm_metadata.jsonl line per generation",
+   "grade": "verified",
+   "h": 96,
+   "id": "archive",
+   "label": "Archive tree",
+   "links": [
+    {
+     "label": "DGM_outer.py:20",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L20"
+    },
+    {
+     "label": "DGM_outer.py:325-333",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L325-L333"
+    },
+    {
+     "label": "utils/evo_utils.py:33-48",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/evo_utils.py#L33-L48"
+    }
+   ],
+   "step": 13,
+   "sub": "run-id list; patch-chain; JSONL log",
+   "w": 380,
+   "x": 20,
+   "y": 670
+  },
+  {
+   "excerpt": "build_dgm_container(...)  # fresh image per attempt\nname = f\"dgm-container-{run_id}\"",
+   "grade": "verified",
+   "h": 96,
+   "id": "sandbox",
+   "label": "Docker sandbox",
+   "links": [
+    {
+     "label": "self_improve_step.py:264-278",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L264-L278"
+    },
+    {
+     "label": "utils/docker_utils.py:92-140",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/docker_utils.py#L92-L140"
+    }
+   ],
+   "step": 4,
+   "sub": "fresh dgm-container-<run_id> per attempt",
+   "w": 380,
+   "x": 510,
+   "y": 20
+  },
+  {
+   "excerpt": "get_model_patch_paths(...)  # walk parent_commit chain\npatch -p1  # oldest-first, inside container",
+   "grade": "verified",
+   "h": 96,
+   "id": "parent",
+   "label": "Parent agent",
+   "links": [
+    {
+     "label": "self_improve_step.py:296-303",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L296-L303"
+    },
+    {
+     "label": "utils/evo_utils.py:33-48",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/evo_utils.py#L33-L48"
+    }
+   ],
+   "step": 5,
+   "sub": "ancestor patches applied oldest-first",
+   "w": 380,
+   "x": 510,
+   "y": 150
+  },
+  {
+   "excerpt": "DIAGNOSE_MODEL = 'o1-2024-12-17'\n# -> {log_summarization, improvement_proposal, ...}",
+   "grade": "verified",
+   "h": 96,
+   "id": "diagnoser",
+   "label": "diagnose_problem (o1)",
+   "links": [
+    {
+     "label": "self_improve_step.py:28",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L28"
+    },
+    {
+     "label": "self_improve_step.py:30-77",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L30-L77"
+    },
+    {
+     "label": "prompts/self_improvement_prompt.py:77-120",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L77-L120"
+    }
+   ],
+   "step": 6,
+   "sub": "source + failures + test patch -> JSON",
+   "w": 380,
+   "x": 510,
+   "y": 280
+  },
+  {
+   "excerpt": "python /dgm/coding_agent.py --problem_statement ... --self_improve\n# timeout 1800; the parent edits /dgm itself",
+   "grade": "verified",
+   "h": 96,
+   "id": "rewrite",
+   "label": "Rewrite by parent agent",
+   "links": [
+    {
+     "label": "self_improve_step.py:346-358",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L346-L358"
+    }
+   ],
+   "step": 7,
+   "sub": "parent edits /dgm itself; 30-min timeout",
+   "w": 380,
+   "x": 510,
+   "y": 410
+  },
+  {
+   "excerpt": "git commit -m \"a nonsense commit message\"  # isolate diff\n# -> model_patch.diff copied to host",
+   "grade": "verified",
+   "h": 96,
+   "id": "child",
+   "label": "Child patch",
+   "links": [
+    {
+     "label": "self_improve_step.py:305-310",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L305-L310"
+    },
+    {
+     "label": "self_improve_step.py:360-379",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L360-L379"
+    }
+   ],
+   "step": 8,
+   "sub": "model_patch.diff vs throwaway commit",
+   "w": 380,
+   "x": 510,
+   "y": 540
+  },
+  {
+   "excerpt": "harness(swe_issues_sm)          # stage 1: 10\nif resolved >= 4: harness(med)  # stage 2: 50",
+   "grade": "verified",
+   "h": 96,
+   "id": "eval",
+   "label": "run_harness_swe",
+   "links": [
+    {
+     "label": "self_improve_step.py:125-174",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L125-L174"
+    }
+   ],
+   "step": 9,
+   "sub": "10 inst -> 50 inst if >= 4/10 resolve",
+   "w": 380,
+   "x": 1000,
+   "y": 20
+  },
+  {
+   "excerpt": "is_compiled_self_improve(meta)  # 4 required keys\n# + >= 1 non-empty patch",
+   "grade": "verified",
+   "h": 96,
+   "id": "compile",
+   "label": "Compile gate",
+   "links": [
+    {
+     "label": "utils/evo_utils.py:98-127",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/utils/evo_utils.py#L98-L127"
+    },
+    {
+     "label": "DGM_outer.py:152-165",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L152-L165"
+    }
+   ],
+   "step": 10,
+   "sub": "4 metadata keys + >=1 non-empty patch",
+   "w": 380,
+   "x": 1000,
+   "y": 150
+  },
+  {
+   "excerpt": "diagnose_improvement(before, after)  # o1\n# impact + score in [-2, 2]; metadata only",
+   "grade": "verified",
+   "h": 96,
+   "id": "postdiag",
+   "label": "diagnose_improvement",
+   "links": [
+    {
+     "label": "self_improve_step.py:69-121",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L69-L121"
+    },
+    {
+     "label": "prompts/diagnose_improvement_prompt.py:42-80",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/diagnose_improvement_prompt.py#L42-L80"
+    }
+   ],
+   "step": 11,
+   "sub": "o1 score [-2,2]; stored, gates nothing",
+   "w": 380,
+   "x": 1000,
+   "y": 280
+  },
+  {
+   "excerpt": "# keep_all: every compiled child joins, any score\n# keep_better: score >= initial_score - 0.1",
+   "grade": "verified",
+   "h": 96,
+   "id": "admit",
+   "label": "update_archive",
+   "links": [
+    {
+     "label": "DGM_outer.py:174-190",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py#L174-L190"
+    }
+   ],
+   "step": 12,
+   "sub": "keep_all; failures stay on disk",
+   "w": 380,
+   "x": 1000,
+   "y": 670
+  },
+  {
+   "excerpt": "def forward(self):  # coding_agent.py:152\n    return chat_with_agent(...)  # a single call",
+   "grade": "verified",
+   "h": 96,
+   "id": "inner",
+   "label": "AgenticSystem",
+   "links": [
+    {
+     "label": "coding_agent.py:60-168",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent.py#L60-L168"
+    },
+    {
+     "label": "coding_agent.py:152-167",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent.py#L152-L167"
+    }
+   ],
+   "sub": "forward(): one chat_with_agent call",
+   "w": 380,
+   "x": 1490,
+   "y": 20
+  },
+  {
+   "excerpt": "while tool_use:  # no max-step cap\n    ... execute tool, append tool_result ...",
+   "grade": "verified",
+   "h": 96,
+   "id": "tooloop",
+   "label": "chat_with_agent_claude",
+   "links": [
+    {
+     "label": "llm_withtools.py:338-425",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L338-L425"
+    }
+   ],
+   "sub": "while tool_use:; no cap; bare-except ends",
+   "w": 380,
+   "x": 1490,
+   "y": 150
+  },
+  {
+   "excerpt": "load_all_tools()  # imports tools/*.py\n# each tool: tool_info() + tool_function()",
+   "grade": "verified",
+   "h": 96,
+   "id": "tools",
+   "label": "tools/: bash, editor",
+   "links": [
+    {
+     "label": "tools/__init__.py:5-31",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/tools/__init__.py#L5-L31"
+    }
+   ],
+   "sub": "each tool: 2 functions; drop-in file",
+   "w": 380,
+   "x": 1490,
+   "y": 280
+  },
+  {
+   "excerpt": "CLAUDE_MODEL = 'bedrock/...claude-3-5-sonnet...'  # inner\nDIAGNOSE_MODEL = 'o1-2024-12-17'  # diagnoser",
+   "grade": "verified",
+   "h": 96,
+   "id": "llms",
+   "label": "LLM backends",
+   "links": [
+    {
+     "label": "llm_withtools.py:13-14",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/llm_withtools.py#L13-L14"
+    },
+    {
+     "label": "self_improve_step.py:28",
+     "url": "https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py#L28"
+    }
+   ],
+   "sub": "Sonnet 3.5 / o1 / o3-mini (polyglot)",
+   "w": 380,
+   "x": 1490,
+   "y": 410
+  }
+ ],
+ "repo": "https://github.com/jennyzzt/dgm",
+ "sha": "a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2",
+ "title": "Darwin G\u00f6del Machine architecture"
+}

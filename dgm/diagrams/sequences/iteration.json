@@ -1,0 +1,102 @@
+{
+ "messages": [
+  {
+   "from": 0,
+   "label": "choose_selfimproves(): read scores",
+   "to": 1
+  },
+  {
+   "dashed": true,
+   "from": 1,
+   "label": "(parent_commit, entry) pairs",
+   "to": 0
+  },
+  {
+   "from": 0,
+   "label": "self_improve(): build_dgm_container()",
+   "to": 2
+  },
+  {
+   "from": 2,
+   "label": "apply ancestor patches (patch -p1)",
+   "to": 4
+  },
+  {
+   "from": 4,
+   "label": "diagnose_problem(source, failures, test patch)",
+   "to": 3
+  },
+  {
+   "dashed": true,
+   "from": 3,
+   "label": "improvement_proposal JSON",
+   "to": 4
+  },
+  {
+   "from": 4,
+   "label": "rewrite: edit /dgm (timeout 1800)",
+   "self": true,
+   "to": 4
+  },
+  {
+   "dashed": true,
+   "from": 4,
+   "label": "model_patch.diff",
+   "to": 2
+  },
+  {
+   "from": 2,
+   "label": "run_harness_swe(child)",
+   "to": 5
+  },
+  {
+   "from": 5,
+   "label": "10, then 50",
+   "self": true,
+   "to": 5
+  },
+  {
+   "dashed": true,
+   "from": 5,
+   "label": "overall_performance",
+   "to": 2
+  },
+  {
+   "dashed": true,
+   "from": 2,
+   "label": "metadata.json + patch",
+   "to": 0
+  },
+  {
+   "from": 0,
+   "label": "update_archive(): append if compiled",
+   "to": 1
+  },
+  {
+   "note": "per-child 1.5h timeout; a failed child never fails the generation",
+   "span": [
+    0,
+    5
+   ],
+   "text": "failure handling"
+  },
+  {
+   "note": "diagnose_improvement score [-2,2] is stored in metadata and gates nothing",
+   "span": [
+    0,
+    5
+   ],
+   "text": "post-diagnosis"
+  }
+ ],
+ "participants": [
+  "DGM_outer.py",
+  "Archive",
+  "Docker sandbox",
+  "Diagnoser (o1)",
+  "Parent agent",
+  "run_harness_swe"
+ ],
+ "subtitle": "parent -> child in self_improve(): the atomic unit of the evolution",
+ "title": "DGM: one self-improvement iteration"
+}
