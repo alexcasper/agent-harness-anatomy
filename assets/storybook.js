@@ -74,8 +74,9 @@
 
     const anchor = document.querySelector(after);
     const top = document.createElement("nav");
-    // full-width bars (diagram header) get a bar; in-column pages match the column
-    const inColumn = anchor.getBoundingClientRect().width < window.innerWidth * 0.9;
+    // the diagram gets a full-width bar under its header; articles and traces
+    // sit in their text column (decided by page kind, not window width)
+    const inColumn = kind !== "diagram";
     const maxW = getComputedStyle(anchor).maxWidth;
     top.className = "storybook " + (inColumn ? "inline" : "top");
     if (inColumn && maxW !== "none") { top.style.maxWidth = maxW; top.style.margin = "0 auto 32px"; }
@@ -98,9 +99,12 @@
     }
 
     if (me.hasAttribute("data-keys")) window.addEventListener("keydown", e => {
-      if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest("input, textarea, select, pre")) return;
+      // leave arrows alone for selection (Shift), form fields, editable or
+      // focusable controls, and anything that scrolls sideways
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.target.isContentEditable ||
+          e.target.closest("input, textarea, select, button, pre, table")) return;
       if (e.key === "ArrowLeft" && prev) location.href = prev.href;
       if (e.key === "ArrowRight" && next) location.href = next.href;
     });
-  }).catch(() => {});
+  }).catch(err => console.warn("storybook nav unavailable:", err)); // e.g. opened via file://
 })();

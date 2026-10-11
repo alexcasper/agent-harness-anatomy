@@ -35,8 +35,13 @@ def teardowns():
 
 
 def chrome(*args):
-    return subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars", *args],
-                          capture_output=True, text=True, timeout=120)
+    """Run headless Chrome; returns stdout, or None if it failed or hung."""
+    try:
+        r = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars", *args],
+                           capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        return None
+    return r.stdout if r.returncode == 0 else None
 
 
 def main(only):
@@ -52,7 +57,7 @@ def main(only):
         if only and slug not in only:
             continue
         dom = chrome("--virtual-time-budget=10000", "--dump-dom",
-                     f"{base}/diagrams/template.html?export&data={data}").stdout
+                     f"{base}/diagrams/template.html?export&data={data}") or ""
         found = re.findall(r'<textarea id="svgExport">(.*?)</textarea>', dom, re.S)
         if not found:
             print(f"{slug}: export failed", file=sys.stderr)
@@ -60,17 +65,20 @@ def main(only):
             continue
         svg = html.unescape(found[-1])
         out = ROOT / slug / "figures" / f"{slug}.svg"
-        out.write_text(svg + "\n")
         w, h = (re.search(rf'\b{a}="(\d+)"', svg[:svg.index(">")]).group(1) for a in ("width", "height"))
+        # render both into a temp dir and only then replace the pair, so a
+        # failed screenshot never leaves a new SVG beside a stale PNG
         with tempfile.TemporaryDirectory() as tmp:
-            png = Path(tmp) / "shot.png"
+            new_svg, png = Path(tmp) / f"{slug}.svg", Path(tmp) / "shot.png"
+            new_svg.write_text(svg + "\n")
             chrome(f"--window-size={w},{h}", "--force-device-scale-factor=2",
-                   f"--screenshot={png}", out.as_uri())
-            if png.exists():
-                png.replace(out.with_name(f"{slug}@2x.png"))
-            else:
-                print(f"{slug}: png screenshot failed", file=sys.stderr)
+                   f"--screenshot={png}", new_svg.as_uri())
+            if not png.exists():
+                print(f"{slug}: png screenshot failed; figure left unchanged", file=sys.stderr)
                 failed += 1
+                continue
+            new_svg.replace(out)
+            png.replace(out.with_name(f"{slug}@2x.png"))
         print(f"{slug}: {out.relative_to(ROOT)}")
     server.shutdown()
     return 1 if failed else 0

@@ -106,7 +106,7 @@ window.DIAGRAM_DATA = {
   "sha": "0000000",
   "nodes": [
     { "id": "input", "step": 1, "label": "User input", "sub": "src/main.ts",
-      "x": 60, "y": 120, "w": 200, "h": 84, "grade": "verified",
+      "x": 60, "y": 120, "w": 200, "h": 96, "grade": "verified",
       "links": [ { "label": "main.ts:42", "url": "https://github.com/example/repo/blob/0000000/src/main.ts#L42" } ],
       "excerpt": "// example excerpt — replace with verbatim code" }
   ],
@@ -214,13 +214,16 @@ function render(data) {
     const c = document.createElement("canvas").getContext("2d");
     const labelFont = '600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif';
     const subFont = '400 10.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
-    const TEXT_X = 44, PAD_R = 14; // label/sub start offset + right padding
+    const TEXT_X = 44, FOOT_X = 14, PAD_R = 14; // label/sub and footer start offsets + right padding
+    const MIN_H = 92; // title, sub, link count and grade lines without overlap
     for (const n of data.nodes) {
+      if (n.h < MIN_H) n.h = MIN_H;
       c.font = labelFont;
       const lw = c.measureText(n.label || "").width;
       c.font = subFont;
       const sw = c.measureText(n.sub || "").width;
-      const need = Math.ceil(Math.max(lw, sw)) + TEXT_X + PAD_R;
+      const gw = c.measureText(gradeLabel(n)).width;
+      const need = Math.ceil(Math.max(lw + TEXT_X, sw + TEXT_X, gw + FOOT_X)) + PAD_R;
       if (need > n.w) {
         const cx = n.x + n.w / 2;
         n.w = need;
@@ -342,7 +345,7 @@ function render(data) {
 
     g.addEventListener("click", ev => {
       ev.stopPropagation();
-      if (dragged) return;
+      if (dragged || ev.detail > 1) return; // ignore the 2nd click of a double-click
       if (g.classList.contains("selected")) closeSelection(); // click again to deselect
       else selectNode(n.id, data);
     });
@@ -474,6 +477,18 @@ function selectNode(id, data) {
     body.animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }],
                  { duration: 160, easing: "ease-out" });
   panel.classList.add("open");
+  revealBesidePanel(id, panel);
+}
+
+// the panel covers the canvas's right edge; pan left if the node would sit under it
+function revealBesidePanel(id, panel) {
+  const node = svg.querySelector(`.node[data-id="${CSS.escape(id)}"] rect.body`);
+  const r = node.getBoundingClientRect(), c = svg.getBoundingClientRect();
+  const clearRight = c.right - panel.offsetWidth - 24;
+  if (r.right <= clearRight) return;
+  const shift = Math.min(r.right - clearRight, r.left - c.left - 24); // don't push it off the left
+  if (shift <= 0) return;
+  animateTo({ ...vb, x: vb.x + shift / svg.getScreenCTM().a });
 }
 function closeSelection() {
   document.getElementById("panel").classList.remove("open");
@@ -482,7 +497,7 @@ function closeSelection() {
 // ways out of a selection: the panel's ×, Esc, or a click on empty canvas
 document.getElementById("closePanel").addEventListener("click", closeSelection);
 window.addEventListener("keydown", e => { if (e.key === "Escape") closeSelection(); });
-svg.addEventListener("click", () => { if (!dragged) closeSelection(); });
+svg.addEventListener("click", e => { if (!dragged && e.detail < 2) closeSelection(); });
 
 // pan & zoom
 // `dragged` tells the click that ends a pan apart from a real click
@@ -566,14 +581,19 @@ svg.addEventListener("dblclick", e => {
 });
 // Safari sends trackpad pinch as gesture events, not ctrl+wheel; without this
 // it falls through to native page zoom, which ignores the limits above
-let gestureScale = 1;
-window.addEventListener("gesturestart", e => { e.preventDefault(); gestureScale = 1; });
+let gestureScale = 1, gestureOnCanvas = false;
+window.addEventListener("gesturestart", e => {
+  gestureOnCanvas = svg.contains(e.target);
+  if (!gestureOnCanvas) return; // pinches over the header or panel keep native zoom
+  e.preventDefault(); gestureScale = 1;
+});
 window.addEventListener("gesturechange", e => {
+  if (!gestureOnCanvas) return;
   e.preventDefault();
   zoomBy(e.clientX, e.clientY, Math.log(e.scale / gestureScale));
   gestureScale = e.scale;
 });
-window.addEventListener("gestureend", e => e.preventDefault());
+window.addEventListener("gestureend", e => { if (gestureOnCanvas) e.preventDefault(); });
 
 // boot: ?data=pi.json loads external JSON, else embedded
 (function boot() {
@@ -581,8 +601,10 @@ window.addEventListener("gestureend", e => e.preventDefault());
   // home link lands on this teardown's card (cards are id'd by folder name)
   const slug = q && q.match(/^\.\.\/([\w-]+)\//);
   if (slug) document.getElementById("homeLink").href = "../index.html#" + slug[1];
+  const exporting = new URLSearchParams(location.search).has("export");
+  // when exporting, a load failure must fail the export rather than emit the placeholder
   if (q) fetch(q).then(r => r.json()).then(render)
-    .catch(() => render(window.DIAGRAM_DATA));
+    .catch(err => { if (exporting) console.error("diagram load failed:", err); else render(window.DIAGRAM_DATA); });
   else render(window.DIAGRAM_DATA);
 })();
 </script>
