@@ -8,7 +8,7 @@
   :root {
     --bg: #161210; --panel: #1f1a15; --border: #3a2f26;
     --text: #ece1d3; --muted: #a89880; --accent: #d08c4e;
-    --verified: #d08c4e; --docs: #7c8aa0; --inferred: #8a7a66;
+    --verified: #6cc070; --docs: #5ea3e6; --inferred: #c27fd6;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -18,12 +18,21 @@
   header h1 { font-size: 18px; font-weight: 600; }
   header .meta { color: var(--muted); font-size: 13px; font-family: ui-monospace, monospace; }
   header .meta a { color: var(--accent); text-decoration: none; }
-  #wrap { flex: 1; display: flex; min-height: 0; }
-  #canvas { flex: 1; cursor: grab; }
+  header .home { color: var(--muted); text-decoration: none; font-size: 13px; padding-right: 16px;
+                 border-right: 1px solid var(--border); }
+  header .home:hover { color: var(--text); }
+  #wrap { flex: 1; display: flex; min-height: 0; position: relative; }
+  #canvas { flex: 1; cursor: grab; user-select: none; -webkit-user-select: none; }
   #canvas:active { cursor: grabbing; }
-  aside { width: 340px; border-left: 1px solid var(--border); background: var(--panel);
-          padding: 16px; overflow-y: auto; display: none; }
-  aside.open { display: block; }
+  /* slides over the diagram's right edge rather than resizing it */
+  aside { position: absolute; top: 0; right: 0; bottom: 0; width: 340px; max-width: 90vw;
+          border-left: 1px solid var(--border); background: var(--panel); padding: 16px; overflow-y: auto;
+          box-shadow: -16px 0 32px rgba(0,0,0,.35); z-index: 2;
+          transform: translateX(100%); opacity: 0; visibility: hidden;
+          transition: transform .22s cubic-bezier(.2,.8,.2,1), opacity .18s ease, visibility 0s .22s; }
+  aside.open { transform: none; opacity: 1; visibility: visible;
+               transition: transform .22s cubic-bezier(.2,.8,.2,1), opacity .18s ease; }
+  @media (prefers-reduced-motion: reduce) { aside, aside.open { transition: none; } }
   aside h2 { font-size: 15px; margin-bottom: 4px; }
   aside .file { color: var(--muted); font-size: 12px; font-family: ui-monospace, monospace; margin-bottom: 10px; }
   aside pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
@@ -36,14 +45,10 @@
                  font-size: 18px; cursor: pointer; }
   .grade { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px;
            text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
-  .grade.verified { background: rgba(208,140,78,.15); color: var(--verified); border: 1px solid var(--verified); }
-  .grade.docs { background: rgba(124,138,160,.15); color: var(--docs); border: 1px solid var(--docs); }
-  .grade.inferred { background: rgba(138,122,102,.15); color: var(--inferred); border: 1px solid var(--inferred); }
-  #legend { position: absolute; bottom: 16px; left: 16px; background: var(--panel);
-            border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 12px; }
-  #legend div { margin: 3px 0; color: var(--muted); }
-  #legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
-  #hint { position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+  .grade.verified { background: rgba(108,192,112,.15); color: var(--verified); border: 1px solid var(--verified); }
+  .grade.docs { background: rgba(94,163,230,.15); color: var(--docs); border: 1px solid var(--docs); }
+  .grade.inferred { background: rgba(194,127,214,.15); color: var(--inferred); border: 1px solid var(--inferred); }
+  #hint { position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
           color: var(--muted); font-size: 12px; background: var(--panel);
           border: 1px solid var(--border); border-radius: 20px; padding: 6px 16px; }
   .node { cursor: pointer; }
@@ -56,6 +61,16 @@
   .node .badge-text { fill: #161210; font-size: 12px; font-weight: 700; }
   .edge { stroke: #8a7a66; stroke-width: 1.5; fill: none; }
   .edge.hl { stroke: #d08c4e; stroke-width: 2; }
+  /* selecting a node: unrelated edges, labels and nodes fade back */
+  .node, .edge, .edge-label { transition: opacity .25s; }
+  #canvas.focus .edge:not(.hl), #canvas.focus .edge-label:not(.hl) { opacity: .15; }
+  #canvas.focus .node:not(.selected):not(.near) { opacity: .4; }
+  #canvas.focus .edge-label.hl { fill: var(--text); }
+  /* dots travelling source -> target along the selected node's edges */
+  .pulse { fill: none; stroke: #ffd2a1; stroke-width: 3.5; stroke-linecap: round;
+           stroke-dasharray: 0 18; pointer-events: none; animation: flow .9s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset: -18; } }
+  @media (prefers-reduced-motion: reduce) { .pulse { display: none; } }
   .edge-label { fill: var(--muted); font-size: 11px; paint-order: stroke;
                 stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; }
   #tooltip { position: absolute; pointer-events: none; background: var(--panel);
@@ -66,22 +81,18 @@
 </head>
 <body>
 <header>
+  <a class="home" id="homeLink" href="../index.html">&larr; Agent Harness Anatomy</a>
   <h1 id="title">Agent Harness Anatomy</h1>
   <span class="meta" id="meta"></span>
 </header>
 <div id="wrap">
   <svg id="canvas" width="100%" height="100%"></svg>
+  <div id="hint">drag to pan &middot; scroll to zoom &middot; double-click to reset &middot; click a node for source links</div>
   <aside id="panel">
     <button class="close" id="closePanel">&times;</button>
     <div id="panelBody"></div>
   </aside>
 </div>
-<div id="legend">
-  <div><span class="dot" style="background:var(--verified)"></span>verified in source</div>
-  <div><span class="dot" style="background:var(--docs)"></span>from docs, unconfirmed</div>
-  <div><span class="dot" style="background:var(--inferred)"></span>inferred</div>
-</div>
-<div id="hint">drag to pan &middot; scroll to zoom &middot; click a node for source links</div>
 <div id="tooltip"></div>
 
 <script>
@@ -95,17 +106,25 @@ window.DIAGRAM_DATA = {
   "sha": "0000000",
   "nodes": [
     { "id": "input", "step": 1, "label": "User input", "sub": "src/main.ts",
-      "x": 60, "y": 120, "w": 200, "h": 84, "grade": "verified",
+      "x": 60, "y": 120, "w": 200, "h": 96, "grade": "verified",
       "links": [ { "label": "main.ts:42", "url": "https://github.com/example/repo/blob/0000000/src/main.ts#L42" } ],
       "excerpt": "// example excerpt — replace with verbatim code" }
   ],
   "edges": []
 };
 
-const GRADE_COLORS = { verified: "#d08c4e", docs: "#7c8aa0", inferred: "#8a7a66" };
+const GRADE_COLORS = { verified: "#6cc070", docs: "#5ea3e6", inferred: "#c27fd6" };
+// spelled-out evidence grade shown on each node and in its side panel; an
+// inferred node may say what it was inferred from via an optional `inferredFrom`
+function gradeLabel(n) {
+  if (n.grade === "verified") return "✓ verified in source";
+  if (n.grade === "docs") return "from docs, unverified in source";
+  return n.inferredFrom ? `inferred from ${n.inferredFrom}` : "inferred, unverified in source";
+}
 const svg = document.getElementById("canvas");
 const tooltip = document.getElementById("tooltip");
 let vb = { x: 0, y: 0, w: 1200, h: 800 };
+let fitVb = { ...vb }; // viewBox fitted to content: the "home" view zoom snaps back to
 
 function setViewBox() { svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); }
 
@@ -195,13 +214,16 @@ function render(data) {
     const c = document.createElement("canvas").getContext("2d");
     const labelFont = '600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif';
     const subFont = '400 10.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
-    const TEXT_X = 44, PAD_R = 14; // label/sub start offset + right padding
+    const TEXT_X = 44, FOOT_X = 14, PAD_R = 14; // label/sub and footer start offsets + right padding
+    const MIN_H = 92; // title, sub, link count and grade lines without overlap
     for (const n of data.nodes) {
+      if (n.h < MIN_H) n.h = MIN_H;
       c.font = labelFont;
       const lw = c.measureText(n.label || "").width;
       c.font = subFont;
       const sw = c.measureText(n.sub || "").width;
-      const need = Math.ceil(Math.max(lw, sw)) + TEXT_X + PAD_R;
+      const gw = c.measureText(gradeLabel(n)).width;
+      const need = Math.ceil(Math.max(lw + TEXT_X, sw + TEXT_X, gw + FOOT_X)) + PAD_R;
       if (need > n.w) {
         const cx = n.x + n.w / 2;
         n.w = need;
@@ -270,11 +292,12 @@ function render(data) {
       const t = document.createElementNS(NS, "text");
       t.setAttribute("x", bb[0]); t.setAttribute("y", bb[3] - 3);
       t.setAttribute("class", "edge-label"); t.textContent = e.label;
+      t.dataset.from = e.from; t.dataset.to = e.to;
       gE.appendChild(t);
     }
   });
 
-  for (const n of data.nodes) {
+  data.nodes.forEach((n, i) => {
     const g = document.createElementNS(NS, "g");
     g.setAttribute("class", "node"); g.dataset.id = n.id;
     const color = GRADE_COLORS[n.grade] || GRADE_COLORS.inferred;
@@ -285,11 +308,6 @@ function render(data) {
     body.setAttribute("rx", 10); body.setAttribute("class", "body");
     g.appendChild(body);
 
-    const stripe = document.createElementNS(NS, "rect");
-    stripe.setAttribute("x", n.x); stripe.setAttribute("y", n.y);
-    stripe.setAttribute("width", 5); stripe.setAttribute("height", n.h);
-    stripe.setAttribute("rx", 2); stripe.setAttribute("fill", color);
-    g.appendChild(stripe);
 
     if (n.step) {
       const c = document.createElementNS(NS, "circle");
@@ -311,12 +329,26 @@ function render(data) {
     sub.textContent = n.sub || ""; g.appendChild(sub);
 
     const nLinks = document.createElementNS(NS, "text");
-    nLinks.setAttribute("x", n.x + 14); nLinks.setAttribute("y", n.y + n.h - 12);
+    nLinks.setAttribute("x", n.x + 14); nLinks.setAttribute("y", n.y + n.h - 30);
     nLinks.setAttribute("class", "sub");
-    nLinks.textContent = `${(n.links || []).length} source link${(n.links || []).length === 1 ? "" : "s"} — click`;
+    const nl = (n.links || []).length;
+    nLinks.textContent = `${nl} source link${nl === 1 ? "" : "s"}`;
     g.appendChild(nLinks);
 
-    g.addEventListener("click", ev => { ev.stopPropagation(); selectNode(n.id, data); });
+    // grade on its own line: the spelled-out labels don't fit beside the link count
+    const grade = document.createElementNS(NS, "text");
+    grade.setAttribute("x", n.x + 14); grade.setAttribute("y", n.y + n.h - 12);
+    grade.setAttribute("class", "sub");
+    grade.style.fill = color;
+    grade.textContent = gradeLabel(n);
+    g.appendChild(grade);
+
+    g.addEventListener("click", ev => {
+      ev.stopPropagation();
+      if (dragged || ev.detail > 1) return; // ignore the 2nd click of a double-click
+      if (g.classList.contains("selected")) closeSelection(); // click again to deselect
+      else selectNode(n.id, data);
+    });
     g.addEventListener("mousemove", ev => {
       tooltip.style.display = "block";
       tooltip.style.left = (ev.clientX + 14) + "px";
@@ -325,7 +357,7 @@ function render(data) {
     });
     g.addEventListener("mouseleave", () => tooltip.style.display = "none");
     gN.appendChild(g);
-  }
+  });
 
   // fit viewBox to content
   const pad = 80;
@@ -333,67 +365,249 @@ function render(data) {
   const ys = data.nodes.flatMap(n => [n.y, n.y + n.h]);
   if (xs.length) vb = { x: Math.min(...xs) - pad, y: Math.min(...ys) - pad,
     w: Math.max(...xs) - Math.min(...xs) + pad * 2, h: Math.max(...ys) - Math.min(...ys) + pad * 2 };
+  fitVb = { ...vb };
   setViewBox();
   setTimeout(() => document.getElementById("hint").style.display = "none", 6000);
+  if (new URLSearchParams(location.search).has("export")) exportSvg(data);
+}
+
+// ?export: render this diagram as a standalone SVG (styles inlined, title
+// drawn in) into a #svgExport textarea, so the article figures are
+// drawn by this same code. tools/render-figures.py collects it.
+function exportSvg(data) {
+  const NS = "http://www.w3.org/2000/svg";
+  const PROPS = ["fill", "stroke", "stroke-width", "stroke-linejoin", "paint-order",
+                 "font-size", "font-weight", "font-family"];
+  const out = svg.cloneNode(true);
+  const src = svg.querySelectorAll("text, rect, path, circle"), dst = out.querySelectorAll("text, rect, path, circle");
+  src.forEach((el, k) => {
+    if (el.closest("defs")) return;
+    const cs = getComputedStyle(el);
+    for (const prop of PROPS) dst[k].setAttribute(prop, cs.getPropertyValue(prop));
+    dst[k].removeAttribute("class");
+  });
+  out.querySelectorAll("[data-id], [data-from], [data-to]").forEach(el => {
+    delete el.dataset.id; delete el.dataset.from; delete el.dataset.to;
+  });
+
+  const cs = getComputedStyle(document.documentElement), css = v => cs.getPropertyValue(v).trim();
+  const font = getComputedStyle(document.body).fontFamily;
+  const head = 24, foot = 0, b = fitVb; // the title sits in the fit padding
+  const vbx = b.x, vby = b.y - head, vbw = b.w, vbh = b.h + head + foot;
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  out.insertBefore(el("rect", { x: vbx, y: vby, width: vbw, height: vbh, fill: css("--bg") }), out.firstChild);
+  const x0 = b.x + 40;
+  out.appendChild(el("text", { x: x0, y: vby + 40, fill: css("--text"), "font-size": 22,
+    "font-weight": 600, "font-family": font }, data.title));
+  if (data.repo) out.appendChild(el("text", { x: x0, y: vby + 62, fill: css("--muted"), "font-size": 13,
+    "font-family": "ui-monospace, monospace" },
+    data.repo.replace("https://github.com/", "") + (data.sha ? " @ " + data.sha.slice(0, 7) : "")));
+
+  out.removeAttribute("id"); out.removeAttribute("width"); out.removeAttribute("height");
+  out.setAttribute("xmlns", NS);
+  out.setAttribute("viewBox", `${vbx} ${vby} ${vbw} ${vbh}`);
+  out.setAttribute("width", Math.round(vbw * 1.5));
+  out.setAttribute("height", Math.round(vbh * 1.5));
+  out.setAttribute("font-family", font);
+  const ta = document.createElement("textarea");
+  ta.id = "svgExport";
+  ta.textContent = new XMLSerializer().serializeToString(out); // textContent, not value: it must show up in the serialized DOM
+  document.body.appendChild(ta);
+}
+
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+function clearSelection() {
+  svg.classList.remove("focus");
+  svg.querySelectorAll(".pulse").forEach(el => el.remove());
+  document.querySelectorAll(".node").forEach(el => el.classList.remove("selected", "near"));
+  document.querySelectorAll(".edge-label").forEach(el => el.classList.remove("hl"));
+  document.querySelectorAll(".edge").forEach(el => {
+    el.getAnimations().forEach(a => a.cancel());
+    el.classList.remove("hl");
+    el.setAttribute("marker-end", "url(#arrow)");
+  });
 }
 
 function selectNode(id, data) {
-  document.querySelectorAll(".node").forEach(el =>
-    el.classList.toggle("selected", el.dataset.id === id));
-  document.querySelectorAll(".edge").forEach(el => {
-    const hl = el.dataset.from === id || el.dataset.to === id;
-    el.classList.toggle("hl", hl);
-    el.setAttribute("marker-end", hl ? "url(#arrowHl)" : "url(#arrow)");
+  clearSelection();
+  svg.classList.add("focus");
+  const near = new Set();
+  document.querySelectorAll(".edge, .edge-label").forEach(el => {
+    if (el.dataset.from !== id && el.dataset.to !== id) return;
+    el.classList.add("hl");
+    near.add(el.dataset.from); near.add(el.dataset.to);
+    if (!el.classList.contains("edge")) return;
+    if (reducedMotion.matches) { el.setAttribute("marker-end", "url(#arrowHl)"); return; }
+    // draw the edge in from its source, add the arrowhead once it lands, then
+    // start the dots flowing in the same direction
+    const L = el.getTotalLength();
+    el.setAttribute("marker-end", "none");
+    el.animate([{ strokeDasharray: `${L} ${L}`, strokeDashoffset: L },
+                { strokeDasharray: `${L} ${L}`, strokeDashoffset: 0 }],
+               { duration: 450, easing: "cubic-bezier(.2,.7,.3,1)" })
+      .onfinish = () => el.setAttribute("marker-end", "url(#arrowHl)");
+    const pulse = el.cloneNode();
+    pulse.removeAttribute("marker-end"); pulse.removeAttribute("data-from"); pulse.removeAttribute("data-to");
+    pulse.setAttribute("class", "pulse");
+    pulse.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 400, fill: "backwards" });
+    el.after(pulse);
+  });
+  document.querySelectorAll(".node").forEach(el => {
+    el.classList.toggle("selected", el.dataset.id === id);
+    el.classList.toggle("near", near.has(el.dataset.id));
   });
   const n = data.nodes.find(n => n.id === id);
   const panel = document.getElementById("panel");
   const body = document.getElementById("panelBody");
   body.innerHTML = `
-    <span class="grade ${n.grade}">${n.grade}</span>
+    <span class="grade ${n.grade}">${gradeLabel(n)}</span>
     <h2>${n.step ? n.step + ". " : ""}${n.label}</h2>
     <div class="file">${n.sub || ""}</div>
     ${n.excerpt ? `<pre>${n.excerpt.replace(/</g, "&lt;")}</pre>` : ""}
     <ul>${(n.links || []).map(l =>
       `<li><a href="${l.url}" target="_blank" rel="noopener">${l.label} ↗</a></li>`).join("")}</ul>`;
+  // already open (switching nodes): cross-fade the contents instead of a hard swap
+  if (panel.classList.contains("open") && !reducedMotion.matches)
+    body.animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }],
+                 { duration: 160, easing: "ease-out" });
   panel.classList.add("open");
+  revealBesidePanel(id, panel);
 }
-document.getElementById("closePanel").addEventListener("click", () => {
+
+// the panel covers the canvas's right edge; pan left if the node would sit under it
+function revealBesidePanel(id, panel) {
+  const node = svg.querySelector(`.node[data-id="${CSS.escape(id)}"] rect.body`);
+  const r = node.getBoundingClientRect(), c = svg.getBoundingClientRect();
+  const clearRight = c.right - panel.offsetWidth - 24;
+  if (r.right <= clearRight) return;
+  const shift = Math.min(r.right - clearRight, r.left - c.left - 24); // don't push it off the left
+  if (shift <= 0) return;
+  animateTo({ ...vb, x: vb.x + shift / svg.getScreenCTM().a });
+}
+function closeSelection() {
   document.getElementById("panel").classList.remove("open");
-  document.querySelectorAll(".node").forEach(el => el.classList.remove("selected"));
-  document.querySelectorAll(".edge").forEach(el => {
-    el.classList.remove("hl");
-    el.setAttribute("marker-end", "url(#arrow)");
-  });
-});
+  clearSelection();
+}
+// ways out of a selection: the panel's ×, Esc, or a click on empty canvas
+document.getElementById("closePanel").addEventListener("click", closeSelection);
+window.addEventListener("keydown", e => { if (e.key === "Escape") closeSelection(); });
+svg.addEventListener("click", e => { if (!dragged && e.detail < 2) closeSelection(); });
 
 // pan & zoom
-let panning = false, sx = 0, sy = 0;
-svg.addEventListener("mousedown", e => { panning = true; sx = e.clientX; sy = e.clientY; });
+// `dragged` tells the click that ends a pan apart from a real click
+let panning = false, dragged = false, sx = 0, sy = 0, downX = 0, downY = 0;
+svg.addEventListener("mousedown", e => {
+  e.preventDefault(); // don't start a text selection while dragging
+  cancelAnimationFrame(anim);
+  panning = true; dragged = false;
+  sx = downX = e.clientX; sy = downY = e.clientY;
+});
 window.addEventListener("mouseup", () => panning = false);
 window.addEventListener("mousemove", e => {
   if (!panning) return;
+  if (Math.hypot(e.clientX - downX, e.clientY - downY) > 4) dragged = true;
   const r = svg.getBoundingClientRect();
   vb.x -= (e.clientX - sx) * vb.w / r.width;
   vb.y -= (e.clientY - sy) * vb.h / r.height;
   sx = e.clientX; sy = e.clientY; setViewBox();
 });
-svg.addEventListener("wheel", e => {
-  e.preventDefault();
-  const f = e.deltaY > 0 ? 1.15 : 1 / 1.15;
+// Zoom has a detent at the fitted view and soft limits beyond it. Scroll input
+// accumulates in `zoomInput` (log units); zoomLevel() maps it to the actual
+// log-zoom: flat for |input| < DETENT, so the fitted view is easy to land on,
+// then easing toward the limits so each further step does less.
+const MAX_ZOOM_IN = 6, MAX_ZOOM_OUT = 1.25, DETENT = 0.18;
+const ZOOM_SPEED = 0.75; // scales every input source (wheel, pinch, Safari gesture)
+const LIM_IN = Math.log(MAX_ZOOM_IN), LIM_OUT = Math.log(MAX_ZOOM_OUT);
+let zoomInput = 0, anim = 0;
+function zoomLevel(u) {
+  if (u > DETENT) return LIM_IN * Math.tanh((u - DETENT) / LIM_IN);
+  if (u < -DETENT) return -LIM_OUT * Math.tanh((-u - DETENT) / LIM_OUT);
+  return 0;
+}
+// fitted view scaled about its own centre; used at and below the fitted zoom so
+// zooming out always recentres the diagram
+function centredFit(z) {
+  const w = fitVb.w / z, h = fitVb.h / z;
+  return { x: fitVb.x + (fitVb.w - w) / 2, y: fitVb.y + (fitVb.h - h) / 2, w, h };
+}
+function animateTo(target) {
+  cancelAnimationFrame(anim);
+  const from = { ...vb }, t0 = performance.now();
+  const step = now => {
+    const t = Math.min((now - t0) / 180, 1), k = 1 - (1 - t) ** 3;
+    for (const key in vb) vb[key] = from[key] + (target[key] - from[key]) * k;
+    setViewBox();
+    if (t < 1) anim = requestAnimationFrame(step);
+  };
+  anim = requestAnimationFrame(step);
+}
+function zoomBy(clientX, clientY, du) {
+  du *= ZOOM_SPEED;
+  const before = zoomLevel(zoomInput);
+  // cap the input just past where the curve flattens, so reversing direction
+  // responds immediately instead of first unwinding piled-up input
+  zoomInput = Math.min(Math.max(zoomInput + du, -(DETENT + 2 * LIM_OUT)), DETENT + 2 * LIM_IN);
+  const after = zoomLevel(zoomInput);
+  if (after === before) return;
+  if (after <= 0) {
+    const target = centredFit(Math.exp(after));
+    if (before > 0) animateTo(target); // coming back out: glide home
+    else { cancelAnimationFrame(anim); vb = target; setViewBox(); }
+    return;
+  }
+  cancelAnimationFrame(anim);
+  const f = Math.exp(before - after);
   const r = svg.getBoundingClientRect();
-  const mx = vb.x + (e.clientX - r.left) * vb.w / r.width;
-  const my = vb.y + (e.clientY - r.top) * vb.h / r.height;
+  const mx = vb.x + (clientX - r.left) * vb.w / r.width;
+  const my = vb.y + (clientY - r.top) * vb.h / r.height;
   vb = { x: mx - (mx - vb.x) * f, y: my - (my - vb.y) * f, w: vb.w * f, h: vb.h * f };
   setViewBox();
+}
+svg.addEventListener("wheel", e => {
+  e.preventDefault();
+  // pinch (ctrlKey) sends small deltas; mouse wheels send ~100 per notch
+  const px = e.deltaY * (e.deltaMode === 1 ? 33 : 1);
+  zoomBy(e.clientX, e.clientY, Math.max(-0.3, Math.min(0.3, -px * (e.ctrlKey ? 0.01 : 0.0014))));
 }, { passive: false });
+svg.addEventListener("dblclick", e => {
+  if (e.target.closest(".node")) return;
+  zoomInput = 0; animateTo({ ...fitVb });
+});
+// Safari sends trackpad pinch as gesture events, not ctrl+wheel; without this
+// it falls through to native page zoom, which ignores the limits above
+let gestureScale = 1, gestureOnCanvas = false;
+window.addEventListener("gesturestart", e => {
+  gestureOnCanvas = svg.contains(e.target);
+  if (!gestureOnCanvas) return; // pinches over the header or panel keep native zoom
+  e.preventDefault(); gestureScale = 1;
+});
+window.addEventListener("gesturechange", e => {
+  if (!gestureOnCanvas) return;
+  e.preventDefault();
+  zoomBy(e.clientX, e.clientY, Math.log(e.scale / gestureScale));
+  gestureScale = e.scale;
+});
+window.addEventListener("gestureend", e => { if (gestureOnCanvas) e.preventDefault(); });
 
 // boot: ?data=pi.json loads external JSON, else embedded
 (function boot() {
   const q = new URLSearchParams(location.search).get("data");
+  // home link lands on this teardown's card (cards are id'd by folder name)
+  const slug = q && q.match(/^\.\.\/([\w-]+)\//);
+  if (slug) document.getElementById("homeLink").href = "../index.html#" + slug[1];
+  const exporting = new URLSearchParams(location.search).has("export");
+  // when exporting, a load failure must fail the export rather than emit the placeholder
   if (q) fetch(q).then(r => r.json()).then(render)
-    .catch(() => render(window.DIAGRAM_DATA));
+    .catch(err => { if (exporting) console.error("diagram load failed:", err); else render(window.DIAGRAM_DATA); });
   else render(window.DIAGRAM_DATA);
 })();
 </script>
+<script src="../assets/storybook.js" data-kind="diagram" data-after="header" data-keys></script>
 </body>
 </html>

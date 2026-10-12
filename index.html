@@ -21,6 +21,8 @@
     border: 1px solid #3a2f26; border-radius: 12px;
     padding: 24px; margin-bottom: 20px; background: #1f1a15;
   }
+  .article { scroll-margin-top: 24px; }
+  .article:target { border-color: #d08c4e; }
   .article h2 { font-size: 1.25rem; margin-bottom: 6px; }
   .article h2 a { color: #ece1d3; text-decoration: none; }
   .article h2 a:hover { text-decoration: underline; }
@@ -53,7 +55,7 @@
   <p class="tagline">Rigorous, source-grounded architecture teardowns of AI agent
   harnesses. Every behavioral claim pinned to verifiable source code.</p>
 
-  <div class="article">
+  <div class="article" id="pi">
     <h2>#1 — pi: the minimalist terminal harness</h2>
     <p>Two packages, one clean seam: a model-agnostic agent loop library plus a
     terminal coding application. Mechanism in the core, policy in extensions —
@@ -65,7 +67,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="aider">
     <h2>#2 — aider: the pair programmer that parses prose</h2>
     <p>One LLM call per turn, then a deterministic parse&rarr;apply&rarr;verify pipeline
     over text edit formats — no tool calls at all. Model-aware where pi is
@@ -78,7 +80,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="cline">
     <h2>#3 &mdash; Cline: the approval-gated IDE resident</h2>
     <p>A host-independent agent loop behind a 224-RPC proto-bus bridge: the VS Code
     webview talks to an SDK runtime it never shares memory with. Every tool call
@@ -91,7 +93,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="goose">
     <h2>#4 &mdash; Goose: the MCP-native agent that asks a judge</h2>
     <p>Every tool is an MCP server &mdash; builtins included &mdash; behind a three-layer
     approval model with an LLM judge for SmartApprove. Mid-migration between a
@@ -104,7 +106,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="codex">
     <h2>#5 &mdash; Codex CLI: the sandbox-first agent that speaks one wire protocol</h2>
     <p>TUI, exec, and daemon are all clients of a single JSON-RPC app-server &mdash;
     one protocol, one loop. Three nested turn loops with <em>no</em> max_turns
@@ -118,7 +120,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="openhands">
     <h2>#6 &mdash; OpenHands: the event-sourced agent SDK</h2>
     <p>Everything is a typed event in a persistent tree &mdash; the LLM never sees
     the raw stream, only a cached incremental view with enforced invariants.
@@ -132,7 +134,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="opencode">
     <h2>#7 &mdash; OpenCode: the dual-runtime coding agent</h2>
     <p>Runs its session loop on two runtimes with Effect-TS dependency
     injection &mdash; and rebuilds the tool surface per request, so the
@@ -146,7 +148,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="hermes">
     <h2>#8 &mdash; Hermes Agent: the self-improving agent</h2>
     <p>The agent writes its own skills at runtime &mdash; a background
     review loop distills what worked into new capabilities, and a curator
@@ -159,7 +161,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="openclaw">
     <h2>#9 &mdash; OpenClaw: the channel-first gateway</h2>
     <p>Telegram, WhatsApp, and Discord are first-class ingress &mdash; every
     inbound message traverses a seven-stage admission pipeline
@@ -175,7 +177,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="gemini-cli">
     <h2>#10 &mdash; Gemini CLI: the routed, policy-gated terminal agent</h2>
     <p>Google's terminal coding agent re-routes the model <em>every turn</em>
     through a composite strategy chain, executes tools via a scheduler with
@@ -191,7 +193,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="swe-agent">
     <h2>#11 &mdash; SWE-agent: the research original</h2>
     <p>A benchmark harness that grew an agent: the model never sees a raw
     shell, only a <em>designed</em> agent-computer interface defined as data
@@ -206,7 +208,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="qwen-code">
     <h2>#12 &mdash; Qwen Code: the fork that outgrew its parent</h2>
     <p>Alibaba's fork of Gemini CLI, independent since v0.1 &mdash; and the fork
     point predates the policy engine and router, so Qwen rebuilt both from
@@ -222,7 +224,7 @@
     </div>
   </div>
 
-  <div class="article">
+  <div class="article" id="dgm">
     <h2>#13 &mdash; Darwin G&ouml;del Machine: the agent that rewrites itself</h2>
     <p>Sakana AI's empirical shot at recursive self-improvement: a coding agent
     that rewrites its own source, validates each variant on SWE-bench, and keeps
